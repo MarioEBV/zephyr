@@ -8,6 +8,7 @@
 
 #include <nxp/nxp_rw6xx.dtsi>
 #include "frdm_rw612_mt25-pinctrl.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
 	model = "nxp,frdm_rw612";
@@ -18,11 +19,15 @@
 		usart-0 = &flexcomm3;
 		i2c-0 = &flexcomm2;
 		pwm-0 = &sctimer;
+        sw2 = &sw_2;
+        mcuboot-button0 = &sw_2;
 	};
 
 	chosen {
 		zephyr,sram = &sram_data;
 		zephyr,flash = &mt25ql512abb8esf;
+        zephyr,code-partition = &slot0_partition;
+        zephyr,flash-controller = &mt25ql512abb8esf;
 		zephyr,console = &flexcomm3;
 		zephyr,shell-uart = &flexcomm3;
 	};
@@ -33,6 +38,16 @@
 			gpios = <&hsgpio0 12 0>;
 		};
 	};
+    
+    gpio_keys {
+		compatible = "gpio-keys";
+		sw_2: sw_2 {
+			label = "User SW2";
+			gpios = <&hsgpio0 11 0>;
+            zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
 };
 
 &flexcomm3 {
@@ -73,6 +88,29 @@
 		erase-block-size = <4096>;
 		write-block-size = <1>;
 		spi-max-frequency = <104000000>;
+        partitions {
+                compatible = "fixed-partitions";
+                #address-cells = <1>;
+                #size-cells = <1>;
+                boot_partition: partition@0 {
+                        label = "mcuboot";
+                        reg = <0x00000000 DT_SIZE_K(128)>;
+                };
+                slot0_partition: partition@20000 {
+                        label = "image-0";
+                        reg = <0x00020000 (DT_SIZE_M(3) + DT_SIZE_K(2 * 4))>;
+
+                        };
+                slot1_partition: partition@323000 {
+                        label = "image-1";
+                        reg = <0x00323000 DT_SIZE_M(3)>;
+                        };
+                storage_partition: partition@623000 {
+                        label = "storage";
+                        reg = <0x00623000 (DT_SIZE_M(58) - DT_SIZE_K(136))>;
+                };
+        };
+
 	};
 	aps6404l: aps6404l@2 {
 			compatible = "nxp,imx-flexspi-aps6404l";
