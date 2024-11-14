@@ -1,0 +1,6 @@
+board:
+  name: frdm_rw612_custom
+  full_name: FRDM_RW612_CUSTOM
+  vendor: nxp
+  socs:
+    - name: rw612
