@@ -1,0 +1,6 @@
+board:
+  name: frdm_rw612_mt25
+  full_name: FRDM_RW612_MT25
+  vendor: nxp
+  socs:
+    - name: rw612
