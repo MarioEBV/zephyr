@@ -13,6 +13,12 @@ Major enhancements with this release include:
   PSA Secure Storage API and of persistent keys in the PSA Crypto API on all board targets. It
   is now the standard way to provide device-specific protection to data at rest. (:github:`76222`)
 
+* The introduction of the :ref:`comparator<comparator_api>` device driver subsystem for analog
+  comparators, complete with shell support. It supports initial configuration through devicetree
+  and runtime configuration through vendor specific APIs. Initially the
+  :dtcompatible:`nordic,nrf-comp`, :dtcompatible:`nordic,nrf-lpcomp` and
+  :dtcompatible:`nxp,kinetis-acmp` are supported.
+
 An overview of the changes required or recommended when migrating your application from Zephyr
 v3.7.0 to Zephyr v4.0.0 can be found in the separate :ref:`migration guide<migration_4.0>`.
 
@@ -502,6 +508,12 @@ Drivers and Sensors
 
 * Hardware info
 
+* Haptics
+
+  * Introduced a haptics device driver subsystem selected with :kconfig:option:`CONFIG_HAPTICS`
+  * Added support for TI DRV2605 haptic driver IC (:dtcompatible:`ti,drv2605`)
+  * Added a sample for the DRV2605 haptic driver to trigger ROM events (:zephyr:code-sample:`drv2605`)
+
 * I2C
 
   * Added initial support for Renesas RA8 I2C driver (:dtcompatible:`renesas,ra-iic`)
@@ -717,6 +729,8 @@ Drivers and Sensors
 * USB
 
   * Added support for USB HS on STM32U59x/STM32U5Ax SoC variants.
+  * Enhanced DWC2 UDC driver
+  * Added UDC drivers for Smartbond, NuMaker USBD and RP2040 device controllers
 
 * Video
 
@@ -724,16 +738,20 @@ Drivers and Sensors
   * Introduced API for partial frames transfer with the video buffer field ``line_offset``
   * Introduced API for :ref:`multi-heap<memory_management_shared_multi_heap>` video buffer allocation with
     :kconfig:option:`CONFIG_VIDEO_BUFFER_USE_SHARED_MULTI_HEAP`
-  * Introduced bindings for common video link properties in ``video-interfaces.yaml``
+  * Introduced bindings for common video link properties in ``video-interfaces.yaml``. Migration to the
+    new bindings is tracked in :github:`80514`
   * Introduced missing :kconfig:option:`CONFIG_VIDEO_LOG_LEVEL`
   * Added a sample for capturing video and displaying it with LVGL
     (:zephyr:code-sample:`video-capture-to-lvgl`)
+  * Added an automatic test to check colorbar pattern correctness
   * Added support for GalaxyCore GC2145 image sensor (:dtcompatible:`gc,gc2145`)
   * Added support for ESP32-S3 LCD-CAM interface (:dtcompatible:`espressif,esp32-lcd-cam`)
   * Added support for NXP MCUX SMARTDMA interface (:dtcompatible:`nxp,smartdma`)
   * Added support for more OmniVision OV2640 controls (:dtcompatible:`ovti,ov2640`)
   * Added support for more OmniVision OV5640 controls (:dtcompatible:`ovti,ov5640`)
   * STM32: Implemented :c:func:`video_get_ctrl` and :c:func:`video_set_ctrl` APIs.
+  * Removed an init order circular dependency for the camera pipeline on NXP RT10xx platforms
+    (:github:`80304`)
 
 * W1
 
@@ -1016,6 +1034,13 @@ Networking
 
 USB
 ***
+
+* New USB device stack:
+
+  * Added USB CDC Network Control Model implementation
+  * Enhanced USB Audio class 2 implementation
+  * Made USB device stack high-bandwidth aware
+  * Enhanced CDC ACM and HID class implementations
 
 Devicetree
 **********
