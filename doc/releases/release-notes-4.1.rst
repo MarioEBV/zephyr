@@ -43,6 +43,12 @@ Architectures
 
 * Xtensa
 
+* native/POSIX
+
+  * :kconfig:option:`CONFIG_NATIVE_APPLICATION` has been deprecated.
+  * For the native_sim target :kconfig:option:`CONFIG_NATIVE_SIM_NATIVE_POSIX_COMPAT` has been
+    switched to ``n`` by default, and this option has been deprecated.
+
 Kernel
 ******
 
@@ -97,6 +103,7 @@ Drivers and Sensors
     signal handling (:github:`81250`)
   * Added ``frame_incomplete`` handling to SDL display driver (:dtcompatible:`zephyr,sdl-dc`)
     (:github:`81250`)
+  * Added transparency support to SDL display driver (:dtcompatible:`zephyr,sdl-dc`) (:github:`81184`)
 
 * Ethernet
 
@@ -291,6 +298,9 @@ LVGL
 
 Tests and Samples
 *****************
+
+* Fixed incorrect alpha values in :zephyr_file:`samples/drivers/display`. (:github:`81184`)
+* Added :zephyr_file:`samples/modules/lvgl/screen_transparency`. (:github:`81184`)
 
 Issue Related Items
 *******************
