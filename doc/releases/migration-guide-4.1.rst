@@ -36,6 +36,14 @@ Mbed TLS
   :kconfig:option:`CONFIG_MBEDTLS_PSA_CRYPTO_LEGACY_RNG`. This helps in reducing
   ROM/RAM footprint of the Mbed TLS library.
 
+* The newly-added Kconfig option :kconfig:option:`CONFIG_MBEDTLS_PSA_KEY_SLOT_COUNT`
+  allows to specify the number of key slots available in the PSA Crypto core.
+  Previously this value was not explicitly set, so Mbed TLS's default value of
+  32 was used. The new Kconfig option defaults to 16 instead in order to find
+  a reasonable compromise between RAM consumption and most common use cases.
+  It can be further trimmed down to reduce RAM consumption if the final
+  application doesn't need that many key slots simultaneously.
+
 Trusted Firmware-M
 ==================
 
@@ -55,6 +63,29 @@ Controller Area Network (CAN)
 Display
 =======
 
+* Displays using the MIPI DBI driver which set their MIPI DBI mode via the
+  ``mipi-mode`` property in devicetree should now use a string property of
+  the same name, like so:
+
+  .. code-block:: devicetree
+
+    /* Legacy display definition */
+
+    st7735r: st7735r@0 {
+        ...
+        mipi-mode = <MIPI_DBI_MODE_SPI_4WIRE>;
+        ...
+    };
+
+    /* New display definition */
+
+    st7735r: st7735r@0 {
+        ...
+        mipi-mode = "MIPI_DBI_MODE_SPI_4WIRE";
+        ...
+    };
+
+
 Enhanced Serial Peripheral Interface (eSPI)
 ===========================================
 
@@ -69,6 +100,12 @@ Interrupt Controller
 
 LED Strip
 =========
+
+Pin Control
+===========
+
+  * Renamed the ``compatible`` from ``nxp,kinetis-pinctrl`` to :dtcompatible:`nxp,port-pinctrl`.
+  * Renamed the ``compatible`` from ``nxp,kinetis-pinmux`` to :dtcompatible:`nxp,port-pinmux`.
 
 Sensors
 =======
@@ -138,6 +175,10 @@ Modem
 
 Architectures
 *************
+
+* Common
+
+  * ``_current`` is deprecated, used :c:func:`arch_current_thread` instead.
 
 * native/POSIX
 

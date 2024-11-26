@@ -27,11 +27,22 @@ API Changes
 Removed APIs in this release
 ============================
 
+ * The deprecated Bluetooth HCI driver API has been removed. It has been replaced by a
+   :c:group:`new API<bt_hci_api>` that follows the normal Zephyr driver model.
+
 Deprecated in this release
 ==========================
 
 Architectures
 *************
+
+* Common
+
+  * Introduced :kconfig:option:`CONFIG_ARCH_HAS_CUSTOM_CURRENT_IMPL`, which can be selected when
+    an architecture implemented and enabled its own :c:func:`arch_current_thread` and
+    :c:func:`arch_current_thread_set` functions for faster retrieval of the current CPU's thread
+    pointer. When enabled, ``_current`` variable will be routed to the
+    :c:func:`arch_current_thread` (:github:`80716`).
 
 * ARC
 
@@ -40,6 +51,9 @@ Architectures
 * ARM64
 
 * RISC-V
+
+  * Implements :c:func:`arch_current_thread_set` & :c:func:`arch_current_thread`, which can be enabled
+    by :kconfig:option:`CONFIG_RISCV_CURRENT_VIA_GP` (:github:`80716`).
 
 * Xtensa
 
@@ -126,6 +140,9 @@ Drivers and Sensors
 * LED
 
   * Added a new set of devicetree based LED APIs, see :c:struct:`led_dt_spec`.
+  * lp5569: added use of auto-increment functionality.
+  * lp5569: implemented ``write_channels`` api.
+  * lp5569: demonstrate ``led_write_channels`` in the sample.
 
 * LED Strip
 
@@ -249,6 +266,18 @@ Libraries / Subsystems
 * Power management
 
 * Crypto
+
+  * The Kconfig symbol :kconfig:option:`CONFIG_MBEDTLS_PSA_STATIC_KEY_SLOTS` was
+    added to allow Mbed TLS to use statically allocated buffers to store key material
+    in its PSA Crypto core instead of heap-allocated ones. This can help reduce
+    (or remove, if no other component makes use of it) heap memory requirements
+    from the final application.
+
+  * The Kconfig symbol :kconfig:option:`CONFIG_MBEDTLS_PSA_KEY_SLOT_COUNT` was
+    added to allow selecting the number of key slots available in the Mbed TLS
+    implementation of the PSA Crypto core. It defaults to 16. Since each
+    slot consumes RAM memory even if unused, this value can be tweaked in order
+    to minimize RAM usage.
 
 * CMSIS-NN
 

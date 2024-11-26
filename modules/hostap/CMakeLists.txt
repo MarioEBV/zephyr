@@ -166,7 +166,8 @@ zephyr_library_sources_ifdef(CONFIG_IEEE80211R
 	${HOSTAP_SRC_BASE}/ap/wpa_auth_ft.c
 )
 
-zephyr_library_sources_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_AP
+if(CONFIG_WIFI_NM_WPA_SUPPLICANT_AP OR CONFIG_WIFI_NM_HOSTAPD_AP)
+zephyr_library_sources(
 	${WIFI_NM_WPA_SUPPLICANT_BASE}/ap.c
 	${HOSTAP_SRC_BASE}/ap/ap_config.c
 	${HOSTAP_SRC_BASE}/ap/ap_drv_ops.c
@@ -217,20 +218,21 @@ zephyr_library_sources_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_11AX
 	${HOSTAP_SRC_BASE}/ap/ieee802_11_he.c
 )
 
-zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_AP
+zephyr_library_compile_definitions(
 	CONFIG_AP
 	CONFIG_NO_RADIUS
 	CONFIG_NO_VLAN
 	CONFIG_NO_ACCOUNTING
 	NEED_AP_MLME
 	CONFIG_IEEE80211AC
-	CONFIG_EAP_SERVER
-	CONFIG_EAP_SERVER_IDENTITY
+	EAP_SERVER
+	EAP_SERVER_IDENTITY
 )
 
 zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_11AX
 	CONFIG_IEEE80211AX
 )
+endif()
 
 zephyr_include_directories_ifdef(CONFIG_WIFI_NM_HOSTAPD_AP
 	${WIFI_NM_HOSTAPD_BASE}/
@@ -363,6 +365,14 @@ zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P
 zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_WPS
 	CONFIG_WPS
 	EAP_WSC
+)
+
+zephyr_library_sources_ifdef(CONFIG_WIFI_NM_HOSTAPD_WPS
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_wsc.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_HOSTAPD_WPS
+	EAP_SERVER_WSC
 )
 
 zephyr_library_sources_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_CRYPTO_ENTERPRISE
@@ -583,6 +593,73 @@ zephyr_library_sources_ifdef(CONFIG_WIFI_NM_WPA_SUPPLICANT_DPP
 	${HOSTAP_SRC_BASE}/utils/ip_addr.c
 
 	${HOSTAP_SRC_BASE}/tls/asn1.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_WIFI_NM_HOSTAPD_CRYPTO_ENTERPRISE
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_tls_common.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_WIFI_NM_HOSTAPD_CRYPTO_ENTERPRISE
+	WIFI_NM_HOSTAPD_CRYPTO_ENTERPRISE
+	EAP_TLS_FUNCS
+	EAP_SERVER
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_IDENTITY
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_identity.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_IDENTITY
+	EAP_SERVER_IDENTITY
+)
+
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_TLS
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_tls.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_TLS
+	EAP_SERVER_TLS
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_MD5
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_md5.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_MD5
+	EAP_SERVER_MD5
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_MSCHAPV2
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_mschapv2.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_MSCHAPV2
+	EAP_SERVER_MSCHAPV2
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_PEAP
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_peap.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_PEAP
+	EAP_SERVER_PEAP
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_GTC
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_gtc.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIG_EAP_SERVER_GTC
+	EAP_SERVER_GTC
+)
+
+zephyr_library_sources_ifdef(CONFIG_EAP_SERVER_TTLS
+	${HOSTAP_SRC_BASE}/eap_server/eap_server_ttls.c
+)
+
+zephyr_library_compile_definitions_ifdef(CONFIGEAP_SERVER_TTLS
+	EAP_SERVER_TTLS
 )
 
 # crypto mbedtls related
