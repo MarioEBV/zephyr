@@ -77,6 +77,9 @@ Bluetooth
 
 * Host
 
+  * :kconfig:option:`CONFIG_BT_BUF_ACL_RX_COUNT` has been deprecated and
+    :kconfig:option:`CONFIG_BT_BUF_ACL_RX_COUNT_EXTRA` has been added.
+
 * HCI Drivers
 
 Boards & SoC Support
@@ -187,6 +190,9 @@ Drivers and Sensors
 * USB
 
 * Video
+
+  * Changed :file:`include/zephyr/drivers/video-controls.h` to have control IDs (CIDs) matching
+    those present in the Linux kernel.
 
 * Watchdog
 
