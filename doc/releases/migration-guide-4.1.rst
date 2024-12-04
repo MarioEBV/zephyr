@@ -113,6 +113,11 @@ Entropy
 GNSS
 ====
 
+I2C
+===
+
+* Renamed the ``compatible`` from ``nxp,imx-lpi2c`` to :dtcompatible:`nxp,lpi2c`.
+
 Input
 =====
 
@@ -263,6 +268,12 @@ Networking
   :kconfig:option:`CONFIG_NET_IPV4_DEFAULT_NETMASK` option instead of being left
   empty. Applications can still specify a custom netmask for an address with
   :c:func:`net_if_ipv4_set_netmask_by_addr` function if needed.
+
+* The HTTP server public API function signature for the :c:type:`http_resource_dynamic_cb_t` has
+  changed, the data is now passed in a :c:struct:`http_request_ctx` which holds the data, data
+  length and request header information. Request headers should be accessed via this parameter
+  rather than directly in the :c:struct:`http_client_ctx` to correctly handle concurrent requests
+  on different HTTP/2 streams.
 
 Other Subsystems
 ****************
