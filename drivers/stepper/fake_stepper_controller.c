@@ -39,8 +39,8 @@ DEFINE_FAKE_VALUE_FUNC(int, fake_stepper_get_actual_position, const struct devic
 
 DEFINE_FAKE_VALUE_FUNC(int, fake_stepper_set_target_position, const struct device *, int32_t);
 
-DEFINE_FAKE_VALUE_FUNC(int, fake_stepper_enable_constant_velocity_mode, const struct device *,
-		       enum stepper_direction, uint32_t);
+DEFINE_FAKE_VALUE_FUNC(int, fake_stepper_run, const struct device *, enum stepper_direction,
+		       uint32_t);
 
 DEFINE_FAKE_VALUE_FUNC(int, fake_stepper_set_event_callback, const struct device *,
 		       stepper_event_callback_t, void *);
@@ -98,7 +98,7 @@ static void fake_stepper_reset_rule_before(const struct ztest_unit_test *test, v
 	RESET_FAKE(fake_stepper_set_reference_position);
 	RESET_FAKE(fake_stepper_get_actual_position);
 	RESET_FAKE(fake_stepper_set_target_position);
-	RESET_FAKE(fake_stepper_enable_constant_velocity_mode);
+	RESET_FAKE(fake_stepper_run);
 
 	/* Install custom fakes for the setter and getter functions */
 	fake_stepper_set_micro_step_res_fake.custom_fake = fake_stepper_set_micro_step_res_delegate;
@@ -124,7 +124,7 @@ static int fake_stepper_init(const struct device *dev)
 	return 0;
 }
 
-static const struct stepper_driver_api fake_stepper_driver_api = {
+static DEVICE_API(stepper, fake_stepper_driver_api) = {
 	.enable = fake_stepper_enable,
 	.move = fake_stepper_move,
 	.is_moving = fake_stepper_is_moving,
@@ -134,7 +134,7 @@ static const struct stepper_driver_api fake_stepper_driver_api = {
 	.set_reference_position = fake_stepper_set_reference_position,
 	.get_actual_position = fake_stepper_get_actual_position,
 	.set_target_position = fake_stepper_set_target_position,
-	.enable_constant_velocity_mode = fake_stepper_enable_constant_velocity_mode,
+	.run = fake_stepper_run,
 	.set_event_callback = fake_stepper_set_event_callback,
 };
 
