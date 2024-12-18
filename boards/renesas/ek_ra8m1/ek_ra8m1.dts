@@ -238,6 +238,7 @@ mikrobus_serial: &uart3 {};
 	status = "okay";
 	pinctrl-0 = <&adc0_default>;
 	pinctrl-names = "default";
+	average-count = <4>;
 };
 
 &trng {
@@ -304,4 +305,18 @@ pmod_header: &pmod1_header {};
 		reg = <5>;
 		status = "okay";
 	};
+};
+
+&usbhs {
+	pinctrl-0 = <&usbhs_default>;
+	pinctrl-names = "default";
+	maximum-speed = "high-speed";
+	status = "okay";
+	zephyr_udc0: udc {
+		status = "okay";
+	};
+};
+
+&usbhs_phy {
+	phys-clock-src = "xtal";
 };

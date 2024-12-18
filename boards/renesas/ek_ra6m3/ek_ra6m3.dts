@@ -7,6 +7,7 @@
 
 #include <renesas/ra/ra6/r7fa6m3ah3cfc.dtsi>
 #include <dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/adc/adc.h>
 
 #include "ek_ra6m3-pinctrl.dtsi"
 
@@ -98,4 +99,24 @@
 
 &trng {
 	status ="okay";
+};
+
+&usbhs {
+	pinctrl-0 = <&usbhs_default>;
+	pinctrl-names = "default";
+	maximum-speed = "high-speed";
+	status = "okay";
+	zephyr_udc0: udc {
+		status = "okay";
+	};
+};
+
+&usbhs_phy {
+	phys-clock-src = "xtal";
+};
+
+&adc0 {
+	status = "okay";
+	pinctrl-0 = <&adc0_default>;
+	pinctrl-names = "default";
 };

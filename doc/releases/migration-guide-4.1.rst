@@ -27,6 +27,18 @@ Boards
 Devicetree
 **********
 
+* The :dtcompatible:`microchip,cap1203` driver has changed its compatible to
+  :dtcompatible:`microchip,cap12xx` and has been updated to support multiple
+  channels.
+  The number of available channels is derived from the length of the devicetree
+  array property ``input-codes``.
+  The :kconfig:option:`CONFIG_INPUT_CAP1203_POLL` has been removed:
+  If the devicetree property ``int-gpios`` is present, interrupt mode is used
+  otherwise, polling is used.
+  The :kconfig:option:`CONFIG_INPUT_CAP1203_PERIOD` has been replaced with
+  the devicetree property ``poll-interval-ms``.
+  In interrupt mode, the devicetree property ``repeat`` is supported.
+
 STM32
 =====
 
@@ -74,6 +86,9 @@ Device Drivers and Devicetree
   the following driver classes:
 
     * :c:struct:`adc_driver_api`
+
+* The :c:func:`video_buffer_alloc` and :c:func:`video_buffer_aligned_alloc` functions in the
+  video API now take an additional timeout parameter.
 
 ADC
 ===
@@ -180,6 +195,8 @@ Sensors
 
 Serial
 ======
+
+* Renamed the ``compatible`` from ``nxp,kinetis-lpuart`` to :dtcompatible:`nxp,lpuart`.
 
 Stepper
 =======
