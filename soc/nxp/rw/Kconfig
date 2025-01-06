@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config SOC_SERIES_RW6XX
+    select HAS_SEGGER_RTT if ZEPHYR_SEGGER_MODULE
 	select ARM
 	select CPU_CORTEX_M33
 	select CPU_CORTEX_M_HAS_DWT
