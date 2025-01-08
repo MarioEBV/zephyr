@@ -337,7 +337,6 @@ Bluetooth Controller:
   collaborators:
     - carlescufi
     - thoh-ot
-    - kruithofa
     - ppryga
     - mtpr-ot
     - wopu-ot
@@ -402,6 +401,7 @@ Bluetooth Host:
     - doc/connectivity/bluetooth/shell/audio/
     - samples/bluetooth/bap*/
     - samples/bluetooth/cap*/
+    - samples/bluetooth/ccp*/
     - samples/bluetooth/hap*/
     - samples/bluetooth/hci_*/
     - samples/bluetooth/pbp*/
@@ -467,7 +467,6 @@ Bluetooth Audio:
     - sjanc
     - asbjornsabo
     - fredrikdanebjer
-    - kruithofa
     - larsgk
     - pin-zephyr
     - niym-ot
@@ -486,6 +485,7 @@ Bluetooth Audio:
     - doc/connectivity/bluetooth/shell/audio/
     - samples/bluetooth/bap*/
     - samples/bluetooth/cap*/
+    - samples/bluetooth/ccp*/
     - samples/bluetooth/hap*/
     - samples/bluetooth/pbp*/
     - samples/bluetooth/tmap*/
@@ -518,7 +518,6 @@ Bluetooth ISO:
     - Thalley
   collaborators:
     - jhedberg
-    - kruithofa
     - rugeGerritsen
     - cvinayak
   files:
@@ -4788,6 +4787,9 @@ West:
   status: maintained
   maintainers:
     - kristofer-jonsson-arm
+    - ithinuel
+  collaborators:
+    - wearyzen
   files:
     - drivers/misc/ethos_u/
     - modules/hal_ethos_u/

@@ -18,10 +18,12 @@ supported:
   - adc
   - flash
   - gpio
+  - can
   - counter
   - dac
   - i2c
   - pwm
   - usb_device
   - usbd
+  - watchdog
 vendor: nxp

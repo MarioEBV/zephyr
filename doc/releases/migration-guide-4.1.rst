@@ -99,6 +99,9 @@ LVGL
   :kconfig:option:`CONFIG_LV_Z_FLUSH_THREAD_PRIORITY` and its value is now interpreted as an
   absolute priority instead of a cooperative one.
 
+* The config option :kconfig:option:`CONFIG_LV_Z_VBD_CUSTOM_SECTION` is now called
+  :kconfig:option:`CONFIG_LV_Z_VDB_CUSTOM_SECTION`.
+
 Device Drivers and Devicetree
 *****************************
 
@@ -389,6 +392,14 @@ LoRa
 * The function :c:func:`lora_recv_async` and callback ``lora_recv_cb`` now include an
   additional ``user_data`` parameter, which is a void pointer. This parameter can be used to reference
   any user-defined data structure. To maintain the current behavior, set this parameter to ``NULL``.
+
+Stream Flash
+============
+
+* The function :c:func:`stream_flash_init` no longer does auto-detection of device size
+  when ``size`` parameter is set to 0 and will return error in such case. User is now
+  required to explicitly provide device size. Issue :github:`71042` provides rationale
+  for the change.
 
 Architectures
 *************
