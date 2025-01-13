@@ -157,12 +157,12 @@ manifest:
       groups:
         - hal
     - name: hal_atmel
-      revision: 56d60ebc909ad065bf6554cee73487969857614b
+      revision: d37df06556f7c03ff3a20422475077fafa0dc17c
       path: modules/hal/atmel
       groups:
         - hal
     - name: hal_espressif
-      revision: e52371024732a47a67fa9c889fbccd0aa6355f3a
+      revision: 5a10d43ab93cec542e59f0db3e33b60b9c442670
       path: modules/hal/espressif
       west-commands: west/west-commands.yml
       groups:
@@ -188,7 +188,7 @@ manifest:
       groups:
         - hal
     - name: hal_microchip
-      revision: 71eba057c0cb7fc11b6f33eb40a82f1ebe2c571c
+      revision: fa2431a906ffb560160d40739d7cf04169551103
       path: modules/hal/microchip
       groups:
         - hal
@@ -203,7 +203,7 @@ manifest:
       groups:
         - hal
     - name: hal_nxp
-      revision: 0ac830233092247c26f5dd01a07b0a484532ea4c
+      revision: b5f6470ec7ccd7f1c9a2c929fa93eae9fb001d9e
       path: modules/hal/nxp
       groups:
         - hal
@@ -219,7 +219,7 @@ manifest:
         - hal
     - name: hal_renesas
       path: modules/hal/renesas
-      revision: 3a8466b2ceca87d05280a071b9b9aabda1915235
+      revision: 5d115875b0b63030c24cf8b0f01288026392c30b
       groups:
         - hal
     - name: hal_rpi_pico
@@ -318,7 +318,7 @@ manifest:
       revision: 71bcaa88c97977647d387217dab99f7d6f026815
       path: modules/bsim_hw_models/nrf_hw_models
     - name: nrf_wifi
-      revision: 0f53c9ebab526661131d5d7e73c7a6cb3b2d2e11
+      revision: 68b018473527fa90237b1abad7ee2568a665bb44
       path: modules/lib/nrf_wifi
     - name: open-amp
       revision: 52bb1783521c62c019451cee9b05b8eda9d7425f

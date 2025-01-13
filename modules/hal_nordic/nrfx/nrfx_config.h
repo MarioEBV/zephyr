@@ -492,9 +492,12 @@
 
 #define NRFX_SPIM_DT_HAS_RX_DELAY(node) DT_PROP(node, rx_delay_supported) +
 
+#ifndef NRFX_SPIM_EXTENDED_ENABLED
 #if DT_FOREACH_STATUS_OKAY(nordic_nrf_spim, NRFX_SPIM_DT_HAS_RX_DELAY) 0
 #define NRFX_SPIM_EXTENDED_ENABLED 1
 #endif
+#endif
+
 #ifdef CONFIG_NRFX_SPIM00
 #define NRFX_SPIM00_ENABLED 1
 #endif
@@ -1136,6 +1139,8 @@
     #include <nrfx_config_nrf54l05_application.h>
 #elif defined(NRF54L05_XXAA) && defined(NRF_FLPR)
     #include <nrfx_config_nrf54l05_flpr.h>
+#elif defined(NRF54L09_ENGA_XXAA) && defined(NRF_APPLICATION)
+    #include <nrfx_config_nrf54l09_enga_application.h>
 #elif defined(NRF54L10_XXAA) && defined(NRF_APPLICATION)
     #include <nrfx_config_nrf54l10_application.h>
 #elif defined(NRF54L10_XXAA) && defined(NRF_FLPR)

@@ -43,7 +43,7 @@ from twisterlib.environment import ZEPHYR_BASE
 sys.path.insert(0, os.path.join(ZEPHYR_BASE, "scripts/pylib/build_helpers"))
 from domains import Domains
 from twisterlib.environment import TwisterEnv
-from twisterlib.harness import HarnessImporter, Pytest
+from twisterlib.harness import Ctest, HarnessImporter, Pytest
 from twisterlib.log_helper import log_command
 from twisterlib.platform import Platform
 from twisterlib.testinstance import TestInstance
@@ -658,6 +658,9 @@ class CMake:
                 '-DCONFIG_COVERAGE=y'
             ])
 
+        if self.instance.toolchain:
+            cmake_args.append(f'-DZEPHYR_TOOLCHAIN_VARIANT={self.instance.toolchain}')
+
         # If needed, run CMake using the package_helper script first, to only run
         # a subset of all cmake modules. This output will be used to filter
         # testcases, and the full CMake configuration will be run for
@@ -830,7 +833,13 @@ class FilterBuilder(CMake):
             and self.env.options.west_flash is None
         ):
             logger.warning("Sysbuild test will be skipped. West must be used for flashing.")
-            return {os.path.join(self.platform.name, self.testsuite.name): True}
+            return {
+                os.path.join(
+                    self.platform.name,
+                    self.instance.toolchain,
+                    self.testsuite.name
+                ): True
+            }
 
         if self.testsuite and self.testsuite.filter:
             try:
@@ -846,9 +855,21 @@ class FilterBuilder(CMake):
                 raise se
 
             if not ret:
-                return {os.path.join(self.platform.name, self.testsuite.name): True}
+                return {
+                    os.path.join(
+                        self.platform.name,
+                        self.instance.toolchain,
+                        self.testsuite.name
+                    ): True
+                }
             else:
-                return {os.path.join(self.platform.name, self.testsuite.name): False}
+                return {
+                    os.path.join(
+                        self.platform.name,
+                        self.instance.toolchain,
+                        self.testsuite.name
+                    ): False
+                }
         else:
             self.platform.filter_data = filter_data
             return filter_data
@@ -1548,6 +1569,8 @@ class ProjectBuilder(FilterBuilder):
                      and hasattr(self.instance.handler, 'seed')
                      and self.instance.handler.seed is not None ):
                     more_info += "/seed: " + str(self.options.seed)
+                if instance.toolchain:
+                    more_info += f" <{instance.toolchain}>"
             logger.info(
                 f"{results.done - results.filtered_static:>{total_tests_width}}/{total_to_do}"
                 f" {instance.platform.name:<25} {instance.testsuite.name:<50}"
@@ -1722,6 +1745,8 @@ class ProjectBuilder(FilterBuilder):
             #
             if isinstance(harness, Pytest):
                 harness.pytest_run(instance.handler.get_test_timeout())
+            elif isinstance(harness, Ctest):
+                harness.ctest_run(instance.handler.get_test_timeout())
             else:
                 instance.handler.handle(harness)
 
