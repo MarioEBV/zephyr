@@ -700,20 +700,34 @@ closing:
 	return ret;
 }
 
-/* Compare two strings where the terminator is either "\0" or "?" */
-static int compare_strings(const char *s1, const char *s2)
+/* Compare a path and a resource string. The path string comes from the HTTP request and may be
+ * terminated by either '?' or '\0'. The resource string is registered along with the resource and
+ * may only be terminated by `\0`.
+ */
+static int compare_strings(const char *path, const char *resource)
 {
-	while ((*s1 && *s2) && (*s1 == *s2) && (*s1 != '?')) {
-		s1++;
-		s2++;
+	while ((*path && *resource) && (*path == *resource) && (*path != '?')) {
+		path++;
+		resource++;
 	}
 
-	/* Check if both strings have reached their terminators or '?' */
-	if ((*s1 == '\0' || *s1 == '?') && (*s2 == '\0' || *s2 == '?')) {
+	/* Check if both strings have reached their terminators */
+	if ((*path == '\0' || *path == '?') && (*resource == '\0')) {
 		return 0; /* Strings are equal */
 	}
 
 	return 1; /* Strings are not equal */
+}
+
+static int path_len_without_query(const char *path)
+{
+	int len = 0;
+
+	while ((path[len] != '\0') && (path[len] != '?')) {
+		len++;
+	}
+
+	return len;
 }
 
 static bool skip_this(struct http_resource_desc *resource, bool is_websocket)
@@ -759,6 +773,11 @@ struct http_resource_detail *get_resource_detail(const struct http_service_desc 
 			*path_len = strlen(resource->resource);
 			return resource->detail;
 		}
+	}
+
+	if (service->res_fallback != NULL) {
+		*path_len = path_len_without_query(path);
+		return service->res_fallback;
 	}
 
 	NET_DBG("No match for %s", path);

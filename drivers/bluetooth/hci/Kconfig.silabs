@@ -4,6 +4,11 @@
 menu "EFR32 Bluetooth Controller Configuration"
 	depends on BT_SILABS_EFR32
 
+config BT_SILABS_EFR32_HCI_VS
+	bool "Silicon Labs vendor specific HCI extensions"
+	help
+	  Enable Silicon Labs vendor specific HCI extensions.
+
 config BT_SILABS_EFR32_BUFFER_MEMORY
 	int "Memory buffer size"
 	default 6144
@@ -41,4 +46,9 @@ config BT_SILABS_EFR32_ACCEPT_LINK_LAYER_STACK_SIZE
 	default 1024
 	help
 	  Link layer stack size.
+
+config BT_SILABS_EFR32_LL_THREAD_PRIO
+	# Hidden option for Co-Operative Link Layer thread priority
+	def_int 0
+
 endmenu

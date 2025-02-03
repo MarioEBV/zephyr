@@ -1,6 +1,6 @@
 # vim: set syntax=python ts=4 :
 #
-# Copyright (c) 2018-2024 Intel Corporation
+# Copyright (c) 2018-2025 Intel Corporation
 # Copyright 2022 NXP
 # Copyright (c) 2024 Arm Limited (or its affiliates). All rights reserved.
 #
@@ -59,6 +59,8 @@ class TestInstance:
         self.metrics = dict()
         self.handler = None
         self.recording = None
+        self.coverage = None
+        self.coverage_status = None
         self.outdir = outdir
         self.execution_time = 0
         self.build_time = 0
@@ -105,9 +107,12 @@ class TestInstance:
                 self.recording.extend(recording)
 
             filename = os.path.join(self.build_dir, fname_csv)
+            fieldnames = set()
+            for r in self.recording:
+                fieldnames.update(r)
             with open(filename, 'w') as csvfile:
                 cw = csv.DictWriter(csvfile,
-                                    fieldnames = self.recording[0].keys(),
+                                    fieldnames = sorted(list(fieldnames)),
                                     lineterminator = os.linesep,
                                     quoting = csv.QUOTE_NONNUMERIC)
                 cw.writeheader()
