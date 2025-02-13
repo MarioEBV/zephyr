@@ -17,6 +17,8 @@ zephyr_library_sources(
 	usbd_msg.c
 )
 
+add_subdirectory(app)
+
 zephyr_library_sources_ifdef(
 	CONFIG_USBD_SHELL
 	usbd_shell.c
@@ -80,6 +82,21 @@ zephyr_library_sources_ifdef(
 	CONFIG_USBD_HID_SUPPORT
 	class/usbd_hid.c
 	class/usbd_hid_api.c
+)
+
+zephyr_library_sources_ifdef(
+  CONFIG_USBD_DFU
+  class/usbd_dfu.c
+)
+
+zephyr_library_sources_ifdef(
+  CONFIG_USBD_DFU_FLASH
+  class/usbd_dfu_flash.c
+)
+
+zephyr_linker_sources_ifdef(
+  CONFIG_USBD_DFU
+  SECTIONS class/usbd_dfu.ld
 )
 
 zephyr_linker_sources(DATA_SECTIONS usbd_data.ld)

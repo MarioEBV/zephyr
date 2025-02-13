@@ -153,7 +153,10 @@ static inline void ethernet_update_length(struct net_if *iface,
 static void ethernet_update_rx_stats(struct net_if *iface, size_t length,
 				     bool dst_broadcast, bool dst_eth_multicast)
 {
-#if defined(CONFIG_NET_STATISTICS_ETHERNET)
+	if (!IS_ENABLED(CONFIG_NET_STATISTICS_ETHERNET)) {
+		return;
+	}
+
 	eth_stats_update_bytes_rx(iface, length);
 	eth_stats_update_pkts_rx(iface);
 	if (dst_broadcast) {
@@ -161,7 +164,6 @@ static void ethernet_update_rx_stats(struct net_if *iface, size_t length,
 	} else if (dst_eth_multicast) {
 		eth_stats_update_multicast_rx(iface);
 	}
-#endif /* CONFIG_NET_STATISTICS_ETHERNET */
 }
 
 static inline bool eth_is_vlan_tag_stripped(struct net_if *iface)
@@ -176,6 +178,10 @@ static inline
 enum net_verdict ethernet_check_ipv4_bcast_addr(struct net_pkt *pkt,
 						struct net_eth_hdr *hdr)
 {
+	if (IS_ENABLED(CONFIG_NET_L2_ETHERNET_ACCEPT_MISMATCH_L3_L2_ADDR)) {
+		return NET_OK;
+	}
+
 	if (net_eth_is_addr_broadcast(&hdr->dst) &&
 	    !(net_ipv4_is_addr_mcast((struct in_addr *)NET_IPV4_HDR(pkt)->dst) ||
 	      net_ipv4_is_addr_bcast(net_pkt_iface(pkt),
@@ -662,10 +668,13 @@ static struct net_buf *ethernet_fill_header(struct ethernet_context *ctx,
 	return hdr_frag;
 }
 
-#if defined(CONFIG_NET_STATISTICS_ETHERNET)
 static void ethernet_update_tx_stats(struct net_if *iface, struct net_pkt *pkt)
 {
 	struct net_eth_hdr *hdr = NET_ETH_HDR(pkt);
+
+	if (!IS_ENABLED(CONFIG_NET_STATISTICS_ETHERNET)) {
+		return;
+	}
 
 	eth_stats_update_bytes_tx(iface, net_pkt_get_len(pkt));
 	eth_stats_update_pkts_tx(iface);
@@ -676,9 +685,6 @@ static void ethernet_update_tx_stats(struct net_if *iface, struct net_pkt *pkt)
 		eth_stats_update_broadcast_tx(iface);
 	}
 }
-#else
-#define ethernet_update_tx_stats(...)
-#endif /* CONFIG_NET_STATISTICS_ETHERNET */
 
 static int ethernet_send(struct net_if *iface, struct net_pkt *pkt)
 {
