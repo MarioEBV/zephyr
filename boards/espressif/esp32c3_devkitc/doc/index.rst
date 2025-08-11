@@ -42,41 +42,7 @@ manual at `ESP32-C3 Technical Reference Manual`_.
 Supported Features
 ==================
 
-Current Zephyr's ESP32-C3-DevKitC board supports the following features:
-
-+------------+------------+-------------------------------------+
-| Interface  | Controller | Driver/Component                    |
-+============+============+=====================================+
-| UART       | on-chip    | serial port                         |
-+------------+------------+-------------------------------------+
-| GPIO       | on-chip    | gpio                                |
-+------------+------------+-------------------------------------+
-| PINMUX     | on-chip    | pinmux                              |
-+------------+------------+-------------------------------------+
-| USB-JTAG   | on-chip    | hardware interface                  |
-+------------+------------+-------------------------------------+
-| SPI Master | on-chip    | spi                                 |
-+------------+------------+-------------------------------------+
-| Timers     | on-chip    | counter                             |
-+------------+------------+-------------------------------------+
-| Watchdog   | on-chip    | watchdog                            |
-+------------+------------+-------------------------------------+
-| TRNG       | on-chip    | entropy                             |
-+------------+------------+-------------------------------------+
-| LEDC       | on-chip    | pwm                                 |
-+------------+------------+-------------------------------------+
-| SPI DMA    | on-chip    | spi                                 |
-+------------+------------+-------------------------------------+
-| TWAI       | on-chip    | can                                 |
-+------------+------------+-------------------------------------+
-| USB-CDC    | on-chip    | serial                              |
-+------------+------------+-------------------------------------+
-| ADC        | on-chip    | adc                                 |
-+------------+------------+-------------------------------------+
-| Wi-Fi      | on-chip    |                                     |
-+------------+------------+-------------------------------------+
-| Bluetooth  | on-chip    |                                     |
-+------------+------------+-------------------------------------+
+.. zephyr:board-supported-hw::
 
 System requirements
 *******************
@@ -97,6 +63,8 @@ below to retrieve those files.
 
 Building & Flashing
 *******************
+
+.. zephyr:board-supported-runners::
 
 Simple boot
 ===========
@@ -213,6 +181,9 @@ message in the monitor:
 
    ***** Booting Zephyr OS vx.x.x-xxx-gxxxxxxxxxxxx *****
    Hello World! esp32c3_devkitc
+
+.. include:: ../../../espressif/common/board-variants.rst
+   :start-after: espressif-board-variants
 
 Debugging
 *********

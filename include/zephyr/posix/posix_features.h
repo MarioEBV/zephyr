@@ -245,6 +245,20 @@
 /* #define _XOPEN_UNIX (-1L) */
 /* #define _XOPEN_UUCP (-1L) */
 
+#if _POSIX_C_SOURCE >= 200809L && (__PICOLIBC__ > 1 ||			\
+(__PICOLIBC__ == 1 && (__PICOLIBC_MINOR__ > 8 ||			\
+__PICOLIBC_MINOR__ == 8 && __PICOLIBC_PATCHLEVEL__ >= 9)))
+/* Use picolibc's limits.h when building POSIX code */
+#include <limits.h>
+#else
+
+/*
+ * clang-format and checkpatch disagree on formatting here, so rely on checkpatch and disable
+ * clang-format since checkpatch cannot be selectively disabled.
+ */
+
+/* clang-format off */
+
 /* Maximum values */
 #define _POSIX_CLOCKRES_MIN (20000000L)
 
@@ -307,6 +321,8 @@
 #define _XOPEN_NAME_MAX                     (255)
 #define _XOPEN_PATH_MAX                     (1024)
 
+#endif /* __PICOLIBC__ */
+
 /* Other invariant values */
 #define NL_LANGMAX (14)
 #define NL_MSGMAX  (32767)
@@ -354,5 +370,7 @@
 #define POSIX_REC_MIN_XFER_SIZE  (1)
 #define POSIX_REC_XFER_ALIGN     (4)
 #define SYMLINK_MAX              _POSIX_SYMLINK_MAX
+
+/* clang-format on */
 
 #endif /* INCLUDE_ZEPHYR_POSIX_POSIX_FEATURES_H_ */

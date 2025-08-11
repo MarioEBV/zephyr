@@ -61,8 +61,14 @@ extern "C" {
 #define NET_WARN(fmt, ...) LOG_WRN(fmt, ##__VA_ARGS__)
 #define NET_INFO(fmt, ...) LOG_INF(fmt,  ##__VA_ARGS__)
 
-#define NET_HEXDUMP_DBG(_data, _length, _str) LOG_HEXDUMP_DBG(_data, _length, _str)
-#define NET_HEXDUMP_ERR(_data, _length, _str) LOG_HEXDUMP_ERR(_data, _length, _str)
+/* Rate-limited network logging macros */
+#define NET_ERR_RATELIMIT(fmt, ...)  LOG_ERR_RATELIMIT(fmt, ##__VA_ARGS__)
+#define NET_WARN_RATELIMIT(fmt, ...) LOG_WRN_RATELIMIT(fmt, ##__VA_ARGS__)
+#define NET_INFO_RATELIMIT(fmt, ...) LOG_INF_RATELIMIT(fmt, ##__VA_ARGS__)
+#define NET_DBG_RATELIMIT(fmt, ...)  LOG_DBG_RATELIMIT(fmt, ##__VA_ARGS__)
+
+#define NET_HEXDUMP_DBG(_data, _length, _str)  LOG_HEXDUMP_DBG(_data, _length, _str)
+#define NET_HEXDUMP_ERR(_data, _length, _str)  LOG_HEXDUMP_ERR(_data, _length, _str)
 #define NET_HEXDUMP_WARN(_data, _length, _str) LOG_HEXDUMP_WRN(_data, _length, _str)
 #define NET_HEXDUMP_INFO(_data, _length, _str) LOG_HEXDUMP_INF(_data, _length, _str)
 
@@ -124,18 +130,38 @@ enum net_verdict {
 int net_recv_data(struct net_if *iface, struct net_pkt *pkt);
 
 /**
- * @brief Send data to network.
+ * @brief Try sending data to network.
  *
  * @details Send data to network. This should not be used normally by
  * applications as it requires that the network packet is properly
  * constructed.
  *
  * @param pkt Network packet.
+ * @param timeout Timeout for send.
  *
  * @return 0 if ok, <0 if error. If <0 is returned, then the caller needs
  * to unref the pkt in order to avoid memory leak.
  */
-int net_send_data(struct net_pkt *pkt);
+int net_try_send_data(struct net_pkt *pkt, k_timeout_t timeout);
+
+/**
+ * @brief Send data to network.
+ *
+ * @details Send data to network. This should not be used normally by
+ * applications as it requires that the network packet is properly
+ * constructed. Equivalent to net_try_send_data with infinite timeout.
+ *
+ * @param pkt Network packet.
+ *
+ * @return 0 if ok, <0 if error. If <0 is returned, then the caller needs
+ * to unref the pkt in order to avoid memory leak.
+ */
+static inline int net_send_data(struct net_pkt *pkt)
+{
+	k_timeout_t timeout = k_is_in_isr() ? K_NO_WAIT : K_FOREVER;
+
+	return net_try_send_data(pkt, timeout);
+}
 
 /** @cond INTERNAL_HIDDEN */
 

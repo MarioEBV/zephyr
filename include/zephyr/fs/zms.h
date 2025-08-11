@@ -1,4 +1,5 @@
-/* Copyright (c) 2024 BayLibre SAS
+/* Copyright (c) 2018 Laczen
+ * Copyright (c) 2024 BayLibre SAS
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -91,7 +92,8 @@ struct zms_fs {
 int zms_mount(struct zms_fs *fs);
 
 /**
- * @brief Clear the ZMS file system from device.
+ * @brief Clear the ZMS file system from device. The ZMS file system must be re-mounted after this
+ * operation.
  *
  * @param fs Pointer to the file system.
  *
@@ -189,7 +191,7 @@ ssize_t zms_read_hist(struct zms_fs *fs, uint32_t id, void *data, size_t len, ui
  * @retval Length of the entry with the given `id` (> 0) on success.
  * @retval -EACCES if ZMS is still not initialized.
  * @retval -EIO if there is a memory read/write error.
- * @retval -ENOENT if there is no entry with the given id and history counter.
+ * @retval -ENOENT if there is no entry with the given id.
  */
 ssize_t zms_get_data_length(struct zms_fs *fs, uint32_t id);
 

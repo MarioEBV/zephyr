@@ -8,12 +8,15 @@ toolchain:
   - zephyr
   - gnuarmemb
 supported:
+  - adc
   - bluetooth
   - gpio
   - uart
+  - spi
   - dma
   - watchdog
   - comparator
+  - dac
 testing:
   ignore_tags:
     - pm

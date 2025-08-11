@@ -23,6 +23,7 @@
 		mcuboot-button0 = &button0;
 		sensor0 = &light;
 		sensor1 = &humidity;
+		watchdog0 = &wdt0;
 	};
 
 	chosen {
@@ -168,7 +169,8 @@
 		compatible = "jedec,spi-nor";
 		reg = <0>;
 		spi-max-frequency = <2000000>;
-		size = <0x200000>;
+		// Size (2 MiB) is in bits
+		size = <0x1000000>;
 		//has-be32k;
 		has-dpd;
 		t-enter-dpd = <20000>;
@@ -284,4 +286,8 @@
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
 		zephyr,resolution = <12>;
 	};
+};
+
+&wdt0 {
+	status = "okay";
 };

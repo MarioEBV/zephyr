@@ -7,10 +7,19 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
+#include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/l2cap.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net_buf.h>
 #include <zephyr/sys/iterable_sections.h>
+#include <zephyr/sys_clock.h>
+
 #include "host/classic/l2cap_br_interface.h"
+/* TODO: we should include conn_internal.h for bt_conn_tx_cb_t but that causes redefinitions */
 
 enum l2cap_conn_list_action {
 	BT_L2CAP_CHAN_LOOKUP,
@@ -43,7 +52,7 @@ struct bt_l2cap_sig_hdr {
 #define BT_L2CAP_CMD_REJECT             0x01
 struct bt_l2cap_cmd_reject {
 	uint16_t reason;
-	uint8_t  data[0];
+	uint8_t  data[];
 } __packed;
 
 struct bt_l2cap_cmd_reject_cid_data {
@@ -116,13 +125,16 @@ struct bt_l2cap_le_credits {
 	uint16_t credits;
 } __packed;
 
+#define BT_L2CAP_ECRED_CREDITS_MIN      1
+#define BT_L2CAP_ECRED_CREDITS_MAX      UINT16_MAX
+
 #define BT_L2CAP_ECRED_CONN_REQ         0x17
 struct bt_l2cap_ecred_conn_req {
 	uint16_t psm;
 	uint16_t mtu;
 	uint16_t mps;
 	uint16_t credits;
-	uint16_t scid[0];
+	uint16_t scid[];
 } __packed;
 
 #define BT_L2CAP_ECRED_CONN_RSP         0x18
@@ -131,14 +143,14 @@ struct bt_l2cap_ecred_conn_rsp {
 	uint16_t mps;
 	uint16_t credits;
 	uint16_t result;
-	uint16_t dcid[0];
+	uint16_t dcid[];
 } __packed;
 
 #define BT_L2CAP_ECRED_RECONF_REQ       0x19
 struct bt_l2cap_ecred_reconf_req {
 	uint16_t mtu;
 	uint16_t mps;
-	uint16_t scid[0];
+	uint16_t scid[];
 } __packed;
 
 #define BT_L2CAP_RECONF_SUCCESS         0x0000

@@ -155,6 +155,14 @@ static int counter_stm32_get_value(const struct device *dev, uint32_t *ticks)
 	return 0;
 }
 
+static int counter_stm32_reset(const struct device *dev)
+{
+	const struct counter_stm32_config *config = dev->config;
+
+	LL_TIM_SetCounter(config->timer, 0);
+	return 0;
+}
+
 static uint32_t counter_stm32_ticks_add(uint32_t val1, uint32_t val2, uint32_t top)
 {
 	uint32_t to_top;
@@ -577,6 +585,7 @@ static DEVICE_API(counter, counter_stm32_driver_api) = {
 	.start = counter_stm32_start,
 	.stop = counter_stm32_stop,
 	.get_value = counter_stm32_get_value,
+	.reset = counter_stm32_reset,
 	.set_alarm = counter_stm32_set_alarm,
 	.cancel_alarm = counter_stm32_cancel_alarm,
 	.set_top_value = counter_stm32_set_top_value,
@@ -632,6 +641,14 @@ void counter_stm32_irq_handler(const struct device *dev)
 /** TIMx instance from DT */
 #define TIM(idx) ((TIM_TypeDef *)DT_REG_ADDR(TIMER(idx)))
 
+#define IRQ_CONNECT_AND_ENABLE_BY_NAME(index, name)				\
+{										\
+	IRQ_CONNECT(DT_IRQ_BY_NAME(TIMER(index), name, irq),			\
+		    DT_IRQ_BY_NAME(TIMER(index), name, priority),		\
+		    counter_stm32_irq_handler, DEVICE_DT_INST_GET(index), 0);	\
+	irq_enable(DT_IRQ_BY_NAME(TIMER(index), name, irq));			\
+}
+
 #define COUNTER_DEVICE_INIT(idx)						  \
 	BUILD_ASSERT(DT_PROP(TIMER(idx), st_prescaler) <= 0xFFFF,		  \
 		     "TIMER prescaler out of range");				  \
@@ -643,12 +660,11 @@ void counter_stm32_irq_handler(const struct device *dev)
 										  \
 	static void counter_##idx##_stm32_irq_config(const struct device *dev)	  \
 	{									  \
-		IRQ_CONNECT(DT_IRQN(TIMER(idx)),				  \
-			    DT_IRQ(TIMER(idx), priority),			  \
-			    counter_stm32_irq_handler,				  \
-			    DEVICE_DT_INST_GET(idx),				  \
-			    0);							  \
-		irq_enable(DT_IRQN(TIMER(idx)));				  \
+		COND_CODE_1(DT_IRQ_HAS_NAME(TIMER(idx), cc),			  \
+			(IRQ_CONNECT_AND_ENABLE_BY_NAME(idx, cc)),		  \
+		(COND_CODE_1(DT_IRQ_HAS_NAME(TIMER(idx), global),		  \
+			(IRQ_CONNECT_AND_ENABLE_BY_NAME(idx, global)),		  \
+		(BUILD_ASSERT(0, "Timer has no 'cc' or 'global' interrupt!")))))  \
 	}									  \
 										  \
 	static const struct counter_stm32_config counter##idx##_config = {	  \

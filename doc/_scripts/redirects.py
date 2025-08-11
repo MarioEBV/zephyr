@@ -12,10 +12,11 @@ Notes:
       without the html extension).
 """
 
-REDIRECTS = [
+REDIRECTS = (
     # zephyr-keep-sorted-start
     ('application/index', 'develop/application/index'),
     ('boards/arduino/uno_r4_minima/doc/index', 'boards/arduino/uno_r4/doc/index'),
+    ('boards/nordic/nrf54l20pdk/doc/index', 'boards/nordic/nrf54lm20dk/doc/index'),
     ('boards/phytec/mimx8mm_phyboard_polis/doc/index', 'boards/phytec/phyboard_polis/doc/index'),
     ('boards/phytec/mimx8mp_phyboard_pollux/doc/index', 'boards/phytec/phyboard_pollux/doc/index'),
     ('boards/rak/index', 'boards/rakwireless/index'),
@@ -96,7 +97,6 @@ REDIRECTS = [
     ('guides/coccinelle', 'develop/tools/coccinelle'),
     ('guides/code-relocation', 'kernel/code-relocation'),
     ('guides/crypto/index', 'services/crypto/index'),
-    ('guides/crypto/tinycrypt', 'services/crypto/tinycrypt'),
     ('guides/device_mgmt/dfu', 'services/device_mgmt/dfu'),
     ('guides/device_mgmt/index', 'services/device_mgmt/index'),
     ('guides/device_mgmt/mcumgr', 'services/device_mgmt/mcumgr'),
@@ -193,7 +193,6 @@ REDIRECTS = [
     ('reference/peripherals/i2c', 'hardware/peripherals/i2c'),
     ('reference/peripherals/index', 'hardware/peripherals/index'),
     ('reference/peripherals/ipm', 'hardware/peripherals/ipm'),
-    ('reference/peripherals/kscan', 'hardware/peripherals/kscan'),
     ('reference/peripherals/led', 'hardware/peripherals/led'),
     ('reference/peripherals/mbox', 'hardware/peripherals/mbox'),
     ('reference/peripherals/mdio', 'hardware/peripherals/mdio'),
@@ -231,6 +230,8 @@ REDIRECTS = [
     ('samples/bluetooth/broadcast_audio_sink/README', 'samples/bluetooth/bap_broadcast_sink/README'),
     ('samples/bluetooth/broadcast_audio_source/README', 'samples/bluetooth/bap_broadcast_source/README'),
     ('samples/bluetooth/central_iso/README', 'samples/bluetooth/iso_central/README'),
+    ('samples/bluetooth/handsfree/README', 'samples/bluetooth/classic/handsfree/README'),
+    ('samples/bluetooth/handsfree_ag/README', 'samples/bluetooth/classic/handsfree_ag/README'),
     ('samples/bluetooth/peripheral_iso/README', 'samples/bluetooth/iso_peripheral/README'),
     ('samples/bluetooth/public_broadcast_sink/README', 'samples/bluetooth/pbp_public_broadcast_sink/README'),
     ('samples/bluetooth/public_broadcast_source/README', 'samples/bluetooth/pbp_public_broadcast_source/README'),
@@ -284,7 +285,6 @@ REDIRECTS = [
     ('samples/boards/stm32/sensortile_box_pro/sensors-on-board/README', 'samples/boards/st/sensortile_box_pro/sensors-on-board/README'),
     ('samples/boards/stm32/steval_stwinbx1/sensors/README', 'samples/boards/st/steval_stwinbx1/sensors/README'),
     ('samples/drivers/adc/README', 'samples/drivers/adc/adc_dt/README'),
-    ('samples/drivers/kscan_touch', 'samples/subsys/input/input'),
     ('samples/drivers/led_apa102/README', 'samples/drivers/led_strip/README'),
     ('samples/drivers/led_is31fl3194/README', 'samples/drivers/led/is31fl3194/README'),
     ('samples/drivers/led_is31fl3216a/README', 'samples/drivers/led/is31fl3216a/README'),
@@ -301,14 +301,15 @@ REDIRECTS = [
     ('samples/drivers/led_ws2812/README', 'samples/drivers/led_strip/README'),
     ('samples/drivers/led_xec/README', 'samples/drivers/led/xec/README'),
     ('samples/net/cloud/google_iot_mqtt/README', 'samples/net/net'),
+    ('samples/sensor/max44009/README', 'samples/sensor/light_polling/README'),
     ('samples/sensor/wsen_hids/README', 'samples/sensor/sensor'),
     ('samples/sensor/wsen_itds/README', 'samples/sensor/sensor'),
+    ('samples/shields/npm1300_ek/doc/index', 'samples/shields/npm13xx_ek/doc/index'),
     ('samples/subsys/video/capture/README', 'samples/drivers/video/capture/README'),
     ('samples/subsys/video/tcpserversink/README', 'samples/drivers/video/tcpserversink/README'),
     ('samples/subsys/video/video', 'samples/drivers/video/video'),
-    ('services/crypto/tinycrypt', 'services/crypto/psa_crypto'),
     ('services/portability/posix', 'services/portability/posix/index'),
     ('services/secure_storage', 'services/storage/secure_storage/index'),
     ('services/settings/index', 'services/storage/settings/index'),
     # zephyr-keep-sorted-stop
-]
+)

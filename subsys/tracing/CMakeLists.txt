@@ -29,11 +29,7 @@ zephyr_sources_ifdef(
 
 if (CONFIG_TRACING_BACKEND_POSIX)
   zephyr_sources(tracing_backend_posix.c)
-  if (CONFIG_NATIVE_APPLICATION)
-    zephyr_library_sources(tracing_backend_posix_bottom.c)
-  else()
-    target_sources(native_simulator INTERFACE tracing_backend_posix_bottom.c)
-  endif()
+  target_sources(native_simulator INTERFACE tracing_backend_posix_bottom.c)
 endif()
 
 zephyr_sources_ifdef(
@@ -48,11 +44,9 @@ zephyr_sources_ifdef(
 
 endif()
 
-if(NOT CONFIG_PERCEPIO_TRACERECORDER AND NOT CONFIG_TRACING_CTF
-  AND NOT CONFIG_SEGGER_SYSTEMVIEW AND NOT CONFIG_TRACING_TEST
-  AND NOT CONFIG_TRACING_USER)
-  zephyr_sources(tracing_none.c)
-endif()
+zephyr_sources(
+  tracing_none.c
+  )
 
 zephyr_sources_ifdef(
   CONFIG_TRACING_OBJECT_TRACKING

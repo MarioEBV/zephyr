@@ -21,12 +21,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <zephyr/bluetooth/bluetooth.h>
-#include <zephyr/bluetooth/hci_types.h>
 #include <zephyr/bluetooth/addr.h>
-#include <zephyr/bluetooth/gap.h>
+#include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/direction.h>
+#include <zephyr/bluetooth/gap.h>
+#include <zephyr/bluetooth/hci_types.h>
+#include <zephyr/net_buf.h>
 #include <zephyr/sys/iterable_sections.h>
+#include <zephyr/sys/slist.h>
+#include <zephyr/sys/util_macro.h>
+#include <zephyr/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -246,6 +250,107 @@ struct bt_conn_le_subrate_changed {
 	uint16_t peripheral_latency;
 	/** Connection Supervision timeout (N * 10 ms). */
 	uint16_t supervision_timeout;
+};
+
+/** Read all remote features complete callback params */
+struct bt_conn_le_read_all_remote_feat_complete {
+	/** @brief  HCI Status from LE Read All Remote Features Complete event.
+	 *
+	 *  The remaining parameters will be unchanged if status is not @ref BT_HCI_ERR_SUCCESS.
+	 */
+	uint8_t status;
+	/** Number of pages supported by remote device. */
+	uint8_t max_remote_page;
+	/** Number of pages fetched from remote device. */
+	uint8_t max_valid_page;
+	/** @brief Pointer to array of size 248, with feature bits of remote supported features.
+	 *
+	 *  Page 0 being 8 bytes, with the following 10 pages of 24 bytes.
+	 *  Refer to BT_LE_FEAT_BIT_* for values.
+	 *  Refer to the BT_FEAT_LE_* macros for value comparison.
+	 *  See Bluetooth Core Specification, Vol 6, Part B, Section 4.6.
+	 */
+	const uint8_t *features;
+};
+
+#define BT_CONN_LE_FRAME_SPACE_TYPES_MASK_ACL_IFS                    \
+	(BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_IFS_ACL_CP_MASK | \
+	 BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_IFS_ACL_PC_MASK)
+
+#define BT_CONN_LE_FRAME_SPACE_TYPES_MASK_ACL                        \
+	(BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_IFS_ACL_CP_MASK | \
+	 BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_IFS_ACL_PC_MASK | \
+	 BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_MCES_MASK)
+
+#define BT_CONN_LE_FRAME_SPACE_TYPES_MASK_CIS                     \
+	(BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_IFS_CIS_MASK | \
+	 BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_MSS_CIS_MASK)
+
+/** Maximum frame space in microseconds.
+ *  As defined in Bluetooth Core Specification, Vol 4, Part E, Section 7.8.151.
+ */
+#define BT_CONN_LE_FRAME_SPACE_MAX (10000U)
+
+/** Frame space update initiator. */
+enum bt_conn_le_frame_space_update_initiator {
+	/** Initiated by local host */
+	BT_CONN_LE_FRAME_SPACE_UPDATE_INITIATOR_LOCAL_HOST =
+		BT_HCI_LE_FRAME_SPACE_UPDATE_INITIATOR_LOCAL_HOST,
+	/** Initiated by local controller */
+	BT_CONN_LE_FRAME_SPACE_UPDATE_INITIATOR_LOCAL_CONTROLLER =
+		BT_HCI_LE_FRAME_SPACE_UPDATE_INITIATOR_LOCAL_CONTROLLER,
+	/** Initiated by peer */
+	BT_CONN_LE_FRAME_SPACE_UPDATE_INITIATOR_PEER =
+		BT_HCI_LE_FRAME_SPACE_UPDATE_INITIATOR_PEER
+};
+
+/** Frame space update params */
+struct bt_conn_le_frame_space_update_param {
+	/** Phy mask of the PHYs to be updated.
+	 *  Refer to BT_HCI_LE_FRAME_SPACE_UPDATE_PHY_* for values.
+	 */
+	uint8_t phys;
+	/** Spacing types mask of the spacing types to be updated.
+	 *  Refer to BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_* and
+	 *  BT_CONN_LE_FRAME_SPACE_TYPES_MASK_* for values.
+	 */
+	uint16_t spacing_types;
+	/** Minimum frame space in microseconds.
+	 *  Bluetooth Core Specification, Vol 4, Part E, Section 7.8.151
+	 *  allows for a range of frame space from 0 to 10000 microseconds.
+	 *  The actual supported frame space values will be dependent on
+	 *  the controller's capabilities.
+	 */
+	uint16_t frame_space_min;
+	/** Maximum frame space in microseconds.
+	 *  Bluetooth Core Specification, Vol 4, Part E, Section 7.8.151
+	 *  allows for a range of frame space from 0 to 10000 microseconds.
+	 *  The actual supported frame space values will be dependent on
+	 *  the controller's capabilities.
+	 */
+	uint16_t frame_space_max;
+};
+
+/** Frame space updated callback params */
+struct bt_conn_le_frame_space_updated {
+	/** HCI Status from LE Frame Space Update Complete event.
+	 *  The remaining parameters will be invalid if status is not
+	 *  @ref BT_HCI_ERR_SUCCESS.
+	 */
+	uint8_t status;
+	/** Initiator of the frame space update. */
+	enum bt_conn_le_frame_space_update_initiator initiator;
+	/** Updated frame space in microseconds. */
+	uint16_t frame_space;
+	/** Phy mask of the PHYs updated.
+	 *  Refer to BT_HCI_LE_FRAME_SPACE_UPDATE_PHY_* for values.
+	 */
+	uint8_t phys;
+	/** Spacing types mask of the spacing types updated.
+	 *  Refer to BT_HCI_LE_FRAME_SPACE_UPDATE_SPACING_TYPE_* and
+	 *  BT_CONN_LE_FRAME_SPACE_TYPES_MASK_* for values.
+	 */
+	uint16_t spacing_types;
 };
 
 /** Connection Type */
@@ -1069,8 +1174,7 @@ bool bt_conn_is_type(const struct bt_conn *conn, enum bt_conn_type type);
  *  @return -EBUSY The remote information is not yet available.
  *  @return -EINVAL @p conn is not a valid @ref BT_CONN_TYPE_LE or @ref BT_CONN_TYPE_BR connection.
  */
-int bt_conn_get_remote_info(struct bt_conn *conn,
-			    struct bt_conn_remote_info *remote_info);
+int bt_conn_get_remote_info(const struct bt_conn *conn, struct bt_conn_remote_info *remote_info);
 
 /** @brief Get connection transmit power level.
  *
@@ -1183,6 +1287,41 @@ int bt_conn_le_subrate_set_defaults(const struct bt_conn_le_subrate_param *param
 int bt_conn_le_subrate_request(struct bt_conn *conn,
 			       const struct bt_conn_le_subrate_param *params);
 
+/** @brief Read remote feature pages.
+ *
+ *  Request remote feature pages, from 0 up to pages_requested or the number
+ *  of pages supported by the peer. There is a maximum of 10 pages.
+ *  This function will trigger the read_all_remote_feat_complete callback
+ *  when the procedure is completed.
+ *
+ *  @kconfig_dep{CONFIG_BT_LE_EXTENDED_FEAT_SET}
+ *
+ *  @param conn @ref BT_CONN_TYPE_LE connection object.
+ *  @param pages_requested Number of feature pages to be requested from peer.
+ *                         There is a maximum of 10 pages.
+ *
+ *  @return Zero on success or (negative) error code on failure.
+ *  @return -EINVAL @p conn is not a valid @ref BT_CONN_TYPE_LE connection.
+ */
+int bt_conn_le_read_all_remote_features(struct bt_conn *conn, uint8_t pages_requested);
+
+/** @brief Update frame space.
+ *
+ *  Request a change to the frame space parameters of a connection.
+ *  This function will trigger the frame_space_updated callback when the
+ *  procedure is completed.
+ *
+ *  @kconfig_dep{CONFIG_BT_FRAME_SPACE_UPDATE}.
+ *
+ *  @param conn   @ref BT_CONN_TYPE_LE connection object.
+ *  @param params Frame Space Update parameters.
+ *
+ *  @return Zero on success or (negative) error code on failure.
+ *  @return -EINVAL @p conn is not a valid @ref BT_CONN_TYPE_LE connection.
+ */
+int bt_conn_le_frame_space_update(struct bt_conn *conn,
+				  const struct bt_conn_le_frame_space_update_param *params);
+
 /** @brief Update the connection parameters.
  *
  *  If the local device is in the peripheral role then updating the connection
@@ -1222,6 +1361,20 @@ int bt_conn_le_data_len_update(struct bt_conn *conn,
  */
 int bt_conn_le_phy_update(struct bt_conn *conn,
 			  const struct bt_conn_le_phy_param *param);
+
+/** @brief Update the default PHY parameters to be used for all subsequent
+ * connections over the LE transport.
+ *
+ *  Update the preferred transmit and receive PHYs of LE transport.
+ *  Use @ref BT_GAP_LE_PHY_NONE to indicate no preference.
+ *  For possible PHY values see @ref bt_gap_le_phy.
+ *
+ *  @param pref_tx_phy  Preferred transmitter phy prarameters.
+ *  @param pref_rx_phy  Preferred receiver phy prameters.
+ *
+ *  @return Zero on success or (negative) error code on failure.
+ */
+int bt_conn_le_set_default_phy(uint8_t pref_tx_phy, uint8_t pref_rx_phy);
 
 /** @brief Disconnect from a remote device or cancel pending connection.
  *
@@ -1560,7 +1713,7 @@ enum bt_conn_le_cs_procedure_enable_state {
 	BT_CONN_LE_CS_PROCEDURES_ENABLED = BT_HCI_OP_LE_CS_PROCEDURES_ENABLED,
 };
 
-/** CS Test Tone Antennna Config Selection.
+/** CS Test Tone Antenna Config Selection.
  *
  *  These enum values are indices in the following table, where N_AP is the maximum
  *  number of antenna paths (in the range [1, 4]).
@@ -1588,14 +1741,14 @@ enum bt_conn_le_cs_procedure_enable_state {
  *  - 2:2 configuration, where both A and B support 2 antennas and N_AP = 4
  */
 enum bt_conn_le_cs_tone_antenna_config_selection {
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_ONE = BT_HCI_OP_LE_CS_ACI_0,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_TWO = BT_HCI_OP_LE_CS_ACI_1,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_THREE = BT_HCI_OP_LE_CS_ACI_2,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_FOUR = BT_HCI_OP_LE_CS_ACI_3,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_FIVE = BT_HCI_OP_LE_CS_ACI_4,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_SIX = BT_HCI_OP_LE_CS_ACI_5,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_SEVEN = BT_HCI_OP_LE_CS_ACI_6,
-	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_INDEX_EIGHT = BT_HCI_OP_LE_CS_ACI_7,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A1_B1 = BT_HCI_OP_LE_CS_ACI_0,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A2_B1 = BT_HCI_OP_LE_CS_ACI_1,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A3_B1 = BT_HCI_OP_LE_CS_ACI_2,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A4_B1 = BT_HCI_OP_LE_CS_ACI_3,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A1_B2 = BT_HCI_OP_LE_CS_ACI_4,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A1_B3 = BT_HCI_OP_LE_CS_ACI_5,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A1_B4 = BT_HCI_OP_LE_CS_ACI_6,
+	BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A2_B2 = BT_HCI_OP_LE_CS_ACI_7,
 };
 
 struct bt_conn_le_cs_procedure_enable_complete {
@@ -1874,38 +2027,92 @@ struct bt_conn_cb {
 				const struct bt_conn_le_subrate_changed *params);
 #endif /* CONFIG_BT_SUBRATING */
 
+#if defined(CONFIG_BT_LE_EXTENDED_FEAT_SET)
+	/** @brief Read all remote features complete event.
+	 *
+	 *  This callback notifies the application that a 'read all remote
+	 *  features' procedure of the connection is completed. The other params
+	 *  will not be populated if status is not @ref BT_HCI_ERR_SUCCESS.
+	 *
+	 *  This callback can be triggered by calling @ref
+	 *  bt_conn_le_read_all_remote_features or by the procedure running
+	 *  autonomously in the controller.
+	 *
+	 *  @param conn   Connection object.
+	 *  @param params Remote features.
+	 */
+	void (*read_all_remote_feat_complete)(
+		struct bt_conn *conn,
+		const struct bt_conn_le_read_all_remote_feat_complete *params);
+#endif /* CONFIG_BT_LE_EXTENDED_FEAT_SET */
+
+#if defined(CONFIG_BT_FRAME_SPACE_UPDATE)
+	/** @brief Frame Space Update Complete event.
+	 *
+	 *  This callback notifies the application that the frame space of
+	 *  the connection may have changed.
+	 *  The frame space update parameters will be invalid
+	 *  if status is not @ref BT_HCI_ERR_SUCCESS.
+	 *
+	 *  This callback can be triggered by calling @ref
+	 *  bt_conn_le_frame_space_update, by the procedure running
+	 *  autonomously in the controller or by the peer.
+	 *
+	 *  @param conn   Connection object.
+	 *  @param params New frame space update parameters.
+	 */
+	void (*frame_space_updated)(
+		struct bt_conn *conn,
+		const struct bt_conn_le_frame_space_updated *params);
+#endif /* CONFIG_BT_FRAME_SPACE_UPDATE */
+
 #if defined(CONFIG_BT_CHANNEL_SOUNDING)
 	/** @brief LE CS Read Remote Supported Capabilities Complete event.
 	 *
-	 *  This callback notifies the application that the remote channel
+	 *  This callback notifies the application that a Channel Sounding
+	 *  Capabilities Exchange procedure has completed.
+	 *
+	 *  If status is BT_HCI_ERR_SUCCESS, the remote channel
 	 *  sounding capabilities have been received from the peer.
 	 *
 	 *  @param conn Connection object.
-	 *  @param remote_cs_capabilities Remote Channel Sounding Capabilities.
+	 *  @param status HCI status of complete event.
+	 *  @param remote_cs_capabilities Pointer to CS Capabilities on success or NULL otherwise.
 	 */
-	void (*le_cs_remote_capabilities_available)(struct bt_conn *conn,
-						    struct bt_conn_le_cs_capabilities *params);
+	void (*le_cs_read_remote_capabilities_complete)(struct bt_conn *conn,
+							uint8_t status,
+							struct bt_conn_le_cs_capabilities *params);
 
 	/** @brief LE CS Read Remote FAE Table Complete event.
 	 *
-	 *  This callback notifies the application that the remote mode-0
+	 *  This callback notifies the application that a Channel Sounding
+	 *  Mode-0 FAE Table Request procedure has completed.
+	 *
+	 *  If status is BT_HCI_ERR_SUCCESS, the remote mode-0
 	 *  FAE Table has been received from the peer.
 	 *
 	 *  @param conn Connection object.
-	 *  @param params FAE Table.
+	 *  @param status HCI status of complete event.
+	 *  @param params Pointer to FAE Table on success or NULL otherwise.
 	 */
-	void (*le_cs_remote_fae_table_available)(struct bt_conn *conn,
-						 struct bt_conn_le_cs_fae_table *params);
+	void (*le_cs_read_remote_fae_table_complete)(struct bt_conn *conn,
+						     uint8_t status,
+						     struct bt_conn_le_cs_fae_table *params);
 
 	/** @brief LE CS Config created.
 	 *
 	 *  This callback notifies the application that a Channel Sounding
-	 *  Configuration procedure has completed and a new CS config is created
+	 *  Configuration procedure has completed.
+	 *
+	 *  If status is BT_HCI_ERR_SUCCESS, a new CS config is created.
 	 *
 	 *  @param conn Connection object.
-	 *  @param config CS configuration.
+	 *  @param status HCI status of complete event.
+	 *  @param config Pointer to CS configuration on success or NULL otherwise.
 	 */
-	void (*le_cs_config_created)(struct bt_conn *conn, struct bt_conn_le_cs_config *config);
+	void (*le_cs_config_complete)(struct bt_conn *conn,
+				      uint8_t status,
+				      struct bt_conn_le_cs_config *config);
 
 	/** @brief LE CS Config removed.
 	 *
@@ -1931,27 +2138,47 @@ struct bt_conn_cb {
 	/** @brief LE CS Security Enabled.
 	 *
 	 *  This callback notifies the application that a Channel Sounding
-	 *  Security Enable procedure has completed
+	 *  Security Enable procedure has completed.
+	 *
+	 *  If status is BT_HCI_ERR_SUCCESS, CS Security is enabled.
 	 *
 	 *  @param conn Connection object.
+	 *  @param status HCI status of complete event.
 	 */
-	void (*le_cs_security_enabled)(struct bt_conn *conn);
+	void (*le_cs_security_enable_complete)(struct bt_conn *conn, uint8_t status);
 
 	/** @brief LE CS Procedure Enabled.
 	 *
 	 *  This callback notifies the application that a Channel Sounding
-	 *  Procedure Enable procedure has completed
+	 *  Procedure Enable procedure has completed.
+	 *
+	 *  If status is BT_HCI_ERR_SUCCESS, CS procedure is enabled.
 	 *
 	 *  @param conn Connection object.
-	 *  @param params CS Procedure Enable parameters
+	 *  @param status HCI status.
+	 *  @param params Pointer to CS Procedure Enable parameters on success or NULL otherwise.
 	 */
-	void (*le_cs_procedure_enabled)(
-		struct bt_conn *conn, struct bt_conn_le_cs_procedure_enable_complete *params);
+	void (*le_cs_procedure_enable_complete)(
+		struct bt_conn *conn, uint8_t status,
+		struct bt_conn_le_cs_procedure_enable_complete *params);
 
 #endif
 
+#if defined(CONFIG_BT_CLASSIC)
+	/** @brief The role of the connection has changed.
+	 *
+	 *  This callback notifies the application that the role switch procedure has completed.
+	 *
+	 *  @param conn Connection object.
+	 *  @param status HCI status of role change event.
+	 */
+	void (*role_changed)(struct bt_conn *conn, uint8_t status);
+#endif
+
+#if defined(CONFIG_BT_CONN_DYNAMIC_CALLBACKS)
 	/** @internal Internally used field for list handling */
 	sys_snode_t _node;
+#endif
 };
 
 /** @brief Register connection callbacks.
@@ -2238,10 +2465,11 @@ struct bt_conn_auth_cb {
 	 *  as if the Kconfig flag was not set.
 	 *
 	 *  For BR/EDR Secure Simple Pairing (SSP), this callback is called
-	 *  when receiving the BT_HCI_EVT_IO_CAPA_REQ hci event.
+	 *  when receiving the BT_HCI_EVT_IO_CAPA_REQ hci event. The feat is
+	 *  NULL here.
 	 *
 	 *  @param conn Connection where pairing is initiated.
-	 *  @param feat Pairing req/resp info.
+	 *  @param feat Pairing req/resp info. It is NULL in BR/EDR SSP.
 	 */
 	enum bt_security_err (*pairing_accept)(struct bt_conn *conn,
 			      const struct bt_conn_pairing_feat *const feat);
@@ -2443,6 +2671,17 @@ struct bt_conn_auth_info_cb {
 	 */
 	void (*bond_deleted)(uint8_t id, const bt_addr_le_t *peer);
 
+#if defined(CONFIG_BT_CLASSIC)
+	/** @brief Notify that bond of classic has been deleted.
+	 *
+	 *  This callback notifies the application that the bond information of classic
+	 *  for the remote peer has been deleted
+	 *
+	 *  @param peer Remote address.
+	 */
+	void (*br_bond_deleted)(const bt_addr_t *peer);
+#endif /* CONFIG_BT_CLASSIC */
+
 	/** Internally used field for list handling */
 	sys_snode_t node;
 };
@@ -2618,6 +2857,50 @@ struct bt_br_conn_param {
  */
 struct bt_conn *bt_conn_create_br(const bt_addr_t *peer,
 				  const struct bt_br_conn_param *param);
+
+/** @brief Look up an existing BR connection by address.
+ *
+ *  Look up an existing BR connection based on the remote address.
+ *
+ *  The caller gets a new reference to the connection object which must be
+ *  released with bt_conn_unref() once done using the object.
+ *
+ *  @param peer Remote address.
+ *
+ *  @return Connection object or NULL if not found.
+ */
+struct bt_conn *bt_conn_lookup_addr_br(const bt_addr_t *peer);
+
+/** @brief Get destination (peer) address of a connection.
+ *
+ *  @param conn Connection object.
+ *
+ *  @return Destination address if @p conn is a valid @ref BT_CONN_TYPE_BR connection
+ */
+const bt_addr_t *bt_conn_get_dst_br(const struct bt_conn *conn);
+
+/** @brief Change the role of the conn.
+ *
+ *  @param conn Connection object.
+ *  @param role The role that want to switch as, the value is @ref BT_HCI_ROLE_CENTRAL and
+ *              @ref BT_HCI_ROLE_PERIPHERAL from hci_types.h.
+ *
+ *  @return Zero on success or (negative) error code on failure.
+ *  @return -ENOBUFS HCI command buffer is not available.
+ *  @return -EINVAL @p conn is not a valid @ref BT_CONN_TYPE_BR connection
+ */
+int bt_conn_br_switch_role(const struct bt_conn *conn, uint8_t role);
+
+/** @brief Enable/disable role switch of the connection by setting the connection's link policy.
+ *
+ *  @param conn Connection object.
+ *  @param enable Value enable/disable role switch of controller.
+ *
+ *  @return Zero on success or (negative) error code on failure.
+ *  @return -ENOBUFS HCI command buffer is not available.
+ *  @return -EINVAL @p conn is not a valid @ref BT_CONN_TYPE_BR connection.
+ */
+int bt_conn_br_set_role_switch_enable(const struct bt_conn *conn, bool enable);
 
 #ifdef __cplusplus
 }

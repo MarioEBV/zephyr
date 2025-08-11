@@ -79,7 +79,8 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
     '''Runner front-end base class for nrf tools.'''
 
     def __init__(self, cfg, family, softreset, pinreset, dev_id, erase=False,
-                 reset=True, tool_opt=None, force=False, recover=False):
+                 erase_mode=None, ext_erase_mode=None, reset=True,
+                 tool_opt=None, force=False, recover=False):
         super().__init__(cfg)
         self.hex_ = cfg.hex_file
         # The old --nrf-family options takes upper-case family names
@@ -88,6 +89,8 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
         self.pinreset = pinreset
         self.dev_id = dev_id
         self.erase = bool(erase)
+        self.erase_mode = erase_mode
+        self.ext_erase_mode = ext_erase_mode
         self.reset = bool(reset)
         self.force = force
         self.recover = bool(recover)
@@ -101,12 +104,13 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
                 self.tool_opt += opts
 
     @classmethod
-    def capabilities(cls):
-        return RunnerCaps(commands={'flash'}, dev_id=True, erase=True,
-                          reset=True, tool_opt=True)
+    def _capabilities(cls, mult_dev_ids=False):
+        return RunnerCaps(commands={'flash'}, dev_id=True,
+                          mult_dev_ids=mult_dev_ids, erase=True, reset=True,
+                          tool_opt=True)
 
     @classmethod
-    def dev_id_help(cls) -> str:
+    def _dev_id_help(cls) -> str:
         return '''Device identifier. Use it to select the J-Link Serial Number
                   of the device connected over USB. '*' matches one or more
                   characters/digits'''
@@ -136,6 +140,14 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
                             help='''erase all user available non-volatile
                             memory and disable read back protection before
                             flashing (erases flash for both cores on nRF53)''')
+        parser.add_argument('--erase-mode', required=False,
+                            choices=['none', 'ranges', 'all'],
+                            help='Select the type of erase operation for the '
+                                 'internal non-volatile memory')
+        parser.add_argument('--ext-erase-mode', required=False,
+                            choices=['none', 'ranges', 'all'],
+                            help='Select the type of erase operation for the '
+                                 'external non-volatile memory')
 
         parser.set_defaults(reset=True)
 
@@ -146,9 +158,19 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
             args.dev_id = previous_runner.dev_id
 
     def ensure_snr(self):
-        if not self.dev_id or "*" in self.dev_id:
-            self.dev_id = self.get_board_snr(self.dev_id or "*")
-        self.dev_id = self.dev_id.lstrip("0")
+        # dev_id can be None, str or list of str
+        dev_id = self.dev_id
+        if isinstance(dev_id, list):
+            if len(dev_id) == 0:
+                dev_id = None
+            elif len(dev_id) == 1:
+                dev_id = dev_id[0]
+            else:
+                self.dev_id = [d.lstrip("0") for d in dev_id]
+                return
+        if not dev_id or "*" in dev_id:
+            dev_id = self.get_board_snr(dev_id or "*")
+        self.dev_id = dev_id.lstrip("0")
 
     @abc.abstractmethod
     def do_get_boards(self):
@@ -298,8 +320,7 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
         # recover operation unlocks the core and then flashes a small image that
         # keeps the debug access port open, recovering the network core last
         # would result in that small image being deleted from the app core.
-        # In the case of the 54H, the order is indifferent.
-        if self.family in ('nrf53', 'nrf54h', 'nrf92'):
+        if self.family in ('nrf53', 'nrf92'):
             self.exec_op('recover', core='Network')
 
         self.exec_op('recover')
@@ -325,6 +346,18 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
 
         return None
 
+    def _get_erase_mode(self, mode):
+        if not mode:
+            return None
+        elif mode == "none":
+            return "ERASE_NONE"
+        elif mode == "ranges":
+            return "ERASE_RANGES_TOUCHED_BY_FIRMWARE"
+        elif mode == "all":
+            return "ERASE_ALL"
+        else:
+            raise RuntimeError(f"Invalid erase mode: {mode}")
+
     def program_hex(self):
         # Get the command use to actually program self.hex_.
         self.logger.info(f'Flashing file: {self.hex_}')
@@ -335,9 +368,9 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
         if self.family in ('nrf54h', 'nrf92'):
             erase_arg = 'ERASE_NONE'
 
-            generated_uicr = self.build_conf.getboolean('CONFIG_NRF_REGTOOL_GENERATE_UICR')
+            regtool_generated_uicr = self.build_conf.getboolean('CONFIG_NRF_REGTOOL_GENERATE_UICR')
 
-            if generated_uicr and not self.hex_get_uicrs().get(core):
+            if regtool_generated_uicr and not self.hex_get_uicrs().get(core):
                 raise RuntimeError(
                     f"Expected a UICR to be contained in: {self.hex_}\n"
                     "Please ensure that the correct version of nrf-regtool is "
@@ -345,8 +378,11 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
                 )
 
             if self.erase:
-                self.exec_op('erase', core='Application', kind='all')
-                self.exec_op('erase', core='Network', kind='all')
+                if self.family == 'nrf54h':
+                    self.exec_op('erase', kind='all')
+                else:
+                    self.exec_op('erase', core='Application', kind='all')
+                    self.exec_op('erase', core='Network', kind='all')
 
             # Manage SUIT artifacts.
             # This logic should be executed only once per build.
@@ -397,11 +433,33 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
                             core='Application',
                         )
 
-            if not self.erase and generated_uicr:
+            if self.build_conf.getboolean("CONFIG_NRF_HALTIUM_GENERATE_UICR"):
+                zephyr_build_dir = Path(self.cfg.build_dir) / 'zephyr'
+
+                self.op_program(
+                    str(zephyr_build_dir / 'uicr.hex'),
+                    'ERASE_NONE',
+                    None,
+                    defer=True,
+                    core='Application',
+                )
+
+                if self.build_conf.getboolean("CONFIG_NRF_HALTIUM_UICR_PERIPHCONF"):
+                    self.op_program(
+                        str(zephyr_build_dir / 'periphconf.hex'),
+                        'ERASE_NONE',
+                        None,
+                        defer=True,
+                        core='Application',
+                    )
+
+            if not self.erase and regtool_generated_uicr:
                 self.exec_op('erase', core=core, kind='uicr')
         else:
             if self.erase:
                 erase_arg = 'ERASE_ALL'
+            elif self.family == 'nrf54l':
+                erase_arg = self._get_erase_mode(self.erase_mode) or 'ERASE_NONE'
             else:
                 erase_arg = 'ERASE_RANGES_TOUCHED_BY_FIRMWARE'
 
@@ -413,9 +471,31 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
         if self.family in xip_ranges:
             xip_start, xip_end = xip_ranges[self.family]
             if self.hex_refers_region(xip_start, xip_end):
-                ext_mem_erase_opt = erase_arg
+                # Default to pages for the external memory
+                ext_mem_erase_opt = self._get_erase_mode(self.ext_erase_mode) or \
+                        (erase_arg if erase_arg == 'ERASE_ALL' else \
+                                    'ERASE_RANGES_TOUCHED_BY_FIRMWARE')
+
+        if not ext_mem_erase_opt and self.ext_erase_mode:
+            self.logger.warning('Option --ext-erase-mode ignored, no parts of the '
+                                'image refer to external memory')
+
+        self.logger.debug(f'Erase modes: chip:{erase_arg} ext_mem:'
+                          f'{ext_mem_erase_opt}')
+
+        # Temp hack while waiting for nrfutil Network support for NRF54H20 with IronSide
+        if self.family == 'nrf54h' and core == 'Network':
+            core = "Application"
 
         self.op_program(self.hex_, erase_arg, ext_mem_erase_opt, defer=True, core=core)
+
+        if self.erase or self.recover:
+            # provision keys if keyfile.json exists in the build directory
+            keyfile = Path(self.cfg.build_dir).parent / 'keyfile.json'
+            if keyfile.exists():
+                self.logger.info(f'Provisioning key file: {keyfile}')
+                self.exec_op('x-provision-keys', keyfile=str(keyfile), defer=True)
+
         self.flush(force=False)
 
 
@@ -506,6 +586,20 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
             raise RuntimeError('Options --softreset and --pinreset are mutually '
                                'exclusive.')
 
+        if self.erase and self.erase_mode:
+            raise RuntimeError('Options --erase and --erase-mode are mutually '
+                               'exclusive.')
+
+        if self.erase and self.ext_erase_mode:
+            raise RuntimeError('Options --erase and --ext-erase-mode are mutually '
+                               'exclusive.')
+
+        self.ensure_family()
+
+        if self.family != 'nrf54l' and self.erase_mode:
+            raise RuntimeError('Option --erase-mode can only be used with the '
+                               'nRF54L family.')
+
         self.ensure_output('hex')
         if IntelHex is None:
             raise RuntimeError('Python dependency intelhex was missing; '
@@ -516,7 +610,6 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
             self.hex_contents.loadfile(self.hex_, format='hex')
 
         self.ensure_snr()
-        self.ensure_family()
 
         self.ops = deque()
 
@@ -528,5 +621,5 @@ class NrfBinaryRunner(ZephyrBinaryRunner):
         # All done, now flush any outstanding ops
         self.flush(force=True)
 
-        self.logger.info(f'Board with serial number {self.dev_id} '
-                         'flashed successfully.')
+        self.logger.info(f'Board(s) with serial number(s) {self.dev_id} '
+                          'flashed successfully.')

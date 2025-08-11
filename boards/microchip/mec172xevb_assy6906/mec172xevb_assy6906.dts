@@ -6,8 +6,8 @@
 
 /dts-v1/;
 
-#include <microchip/mec172xnsz.dtsi>
-#include <microchip/mec172x/mec172xnsz-pinctrl.dtsi>
+#include <microchip/mec/mec172xnsz.dtsi>
+#include <microchip/mec/mec172x/mec172xnsz-pinctrl.dtsi>
 
 / {
 	model = "Microchip MEC172XEVB_ASSY6906 evaluation board";
@@ -233,10 +233,6 @@
 	pinctrl-names = "default", "sleep";
 	row-size = <8>;
 	col-size = <16>;
-
-	kscan_input: kscan-input {
-		compatible = "zephyr,kscan-input";
-	};
 };
 
 &ksi0_gpio017 {
@@ -288,8 +284,4 @@
 	pinctrl-0 = <&ps2_clk0a_gpio114 &ps2_dat0a_gpio115>;
 	pinctrl-1 = <&ps2_clk0a_gpio114_sleep &ps2_dat0a_gpio115_sleep>;
 	pinctrl-names = "default", "sleep";
-};
-
-&timer5 {
-	status = "okay";
 };

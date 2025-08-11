@@ -134,7 +134,7 @@
 				write-block-size = <16>;
 				erase-block-size = <8192>;
 				/* maximum erase time(ms) for a 8K sector */
-				max-erase-time = <5>;
+				max-erase-time = <10>;
 			};
 		};
 
@@ -164,7 +164,8 @@
 			#interrupt-cells = <1>;
 			#address-cells = <1>;
 			reg = <0x44022000 0x400>;
-			num-lines = <16>;
+			clocks = <&rcc STM32_CLOCK(APB3, 1)>;
+			num-lines = <64>;
 			interrupts = <11 0>, <12 0>, <13 0>, <14 0>,
 				     <15 0>, <16 0>, <17 0>, <18 0>,
 				     <19 0>, <20 0>, <21 0>, <22 0>,
@@ -538,15 +539,20 @@
 			status = "disabled";
 		};
 
-		mac: ethernet@40028000 {
-			compatible = "st,stm32h7-ethernet", "st,stm32-ethernet";
+		ethernet@40028000 {
 			reg = <0x40028000 0x8000>;
-			interrupts = <106 0>;
-			clock-names = "stmmaceth", "mac-clk-tx", "mac-clk-rx";
-			clocks = <&rcc STM32_CLOCK(AHB1, 19U)>,
-				 <&rcc STM32_CLOCK(AHB1, 20U)>,
-				 <&rcc STM32_CLOCK(AHB1, 21U)>;
-			status = "disabled";
+			compatible = "st,stm32-ethernet-controller";
+			clock-names = "stm-eth";
+			clocks = <&rcc STM32_CLOCK(AHB1, 19)>;
+
+			mac: ethernet {
+				compatible = "st,stm32h7-ethernet", "st,stm32-ethernet";
+				interrupts = <106 0>;
+				clock-names = "mac-clk-tx", "mac-clk-rx";
+				clocks = <&rcc STM32_CLOCK(AHB1, 20)>,
+					 <&rcc STM32_CLOCK(AHB1, 21)>;
+				status = "disabled";
+			};
 
 			mdio: mdio {
 				compatible = "st,stm32-mdio";
@@ -628,6 +634,28 @@
 			status = "disabled";
 		};
 
+		sai1_a: sai1@40015404 {
+			compatible = "st,stm32-sai";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40015404 0x20>;
+			clocks = <&rcc STM32_CLOCK(APB2, 21)>,
+				 <&rcc STM32_SRC_PLL2_P SAI1_SEL(0)>;
+			dmas = <&gpdma1 1 53 0>;
+			status = "disabled";
+		};
+
+		sai1_b: sai1@40015424 {
+			compatible = "st,stm32-sai";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40015424 0x20>;
+			clocks = <&rcc STM32_CLOCK(APB2, 21)>,
+				 <&rcc STM32_SRC_PLL2_P SAI1_SEL(0)>;
+			dmas = <&gpdma1 0 54 0>;
+			status = "disabled";
+		};
+
 		usb: usb@40016000 {
 			compatible = "st,stm32-usb";
 			reg = <0x40016000 0x400>;
@@ -635,6 +663,7 @@
 			interrupt-names = "usb";
 			num-bidir-endpoints = <8>;
 			ram-size = <2048>;
+			maximum-speed = "full-speed";
 			phys = <&usb_fs_phy>;
 			clocks = <&rcc STM32_CLOCK(APB2, 24U)>,
 				 <&rcc STM32_SRC_HSI48 USB_SEL(3)>;

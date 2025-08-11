@@ -119,7 +119,7 @@ static uint16_t get_rgb565_color(enum corner corner, uint8_t grey)
 	return color;
 }
 
-static void fill_buffer_rgb565(enum corner corner, uint8_t grey, uint8_t *buf,
+static void fill_buffer_bgr565(enum corner corner, uint8_t grey, uint8_t *buf,
 			       size_t buf_size)
 {
 	uint16_t color = get_rgb565_color(corner, grey);
@@ -130,7 +130,7 @@ static void fill_buffer_rgb565(enum corner corner, uint8_t grey, uint8_t *buf,
 	}
 }
 
-static void fill_buffer_bgr565(enum corner corner, uint8_t grey, uint8_t *buf,
+static void fill_buffer_rgb565(enum corner corner, uint8_t grey, uint8_t *buf,
 			       size_t buf_size)
 {
 	uint16_t color = get_rgb565_color(corner, grey);
@@ -156,6 +156,13 @@ static void fill_buffer_mono(enum corner corner, uint8_t grey,
 	}
 
 	memset(buf, color, buf_size);
+}
+
+static inline void fill_buffer_l_8(enum corner corner, uint8_t grey, uint8_t *buf, size_t buf_size)
+{
+	for (size_t idx = 0; idx < buf_size; idx += 1) {
+		*(uint8_t *)(buf + idx) = grey;
+	}
 }
 
 static inline void fill_buffer_mono01(enum corner corner, uint8_t grey,
@@ -261,6 +268,10 @@ int main(void)
 		bg_color = 0xFFu;
 		fill_buffer_fnc = fill_buffer_bgr565;
 		buf_size *= 2;
+		break;
+	case PIXEL_FORMAT_L_8:
+		bg_color = 0xFFu;
+		fill_buffer_fnc = fill_buffer_l_8;
 		break;
 	case PIXEL_FORMAT_MONO01:
 		bg_color = 0xFFu;

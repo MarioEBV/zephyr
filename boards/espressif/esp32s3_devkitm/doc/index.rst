@@ -81,41 +81,7 @@ manual at `ESP32-S3 Technical Reference Manual`_.
 Supported Features
 ==================
 
-Current Zephyr's ESP32-S3-DevKitM board supports the following features:
-
-+------------+------------+-------------------------------------+
-| Interface  | Controller | Driver/Component                    |
-+============+============+=====================================+
-| UART       | on-chip    | serial port                         |
-+------------+------------+-------------------------------------+
-| GPIO       | on-chip    | gpio                                |
-+------------+------------+-------------------------------------+
-| PINMUX     | on-chip    | pinmux                              |
-+------------+------------+-------------------------------------+
-| USB-JTAG   | on-chip    | hardware interface                  |
-+------------+------------+-------------------------------------+
-| SPI Master | on-chip    | spi                                 |
-+------------+------------+-------------------------------------+
-| TWAI/CAN   | on-chip    | can                                 |
-+------------+------------+-------------------------------------+
-| ADC        | on-chip    | adc                                 |
-+------------+------------+-------------------------------------+
-| Timers     | on-chip    | counter                             |
-+------------+------------+-------------------------------------+
-| Watchdog   | on-chip    | watchdog                            |
-+------------+------------+-------------------------------------+
-| TRNG       | on-chip    | entropy                             |
-+------------+------------+-------------------------------------+
-| LEDC       | on-chip    | pwm                                 |
-+------------+------------+-------------------------------------+
-| MCPWM      | on-chip    | pwm                                 |
-+------------+------------+-------------------------------------+
-| PCNT       | on-chip    | qdec                                |
-+------------+------------+-------------------------------------+
-| GDMA       | on-chip    | dma                                 |
-+------------+------------+-------------------------------------+
-| USB-CDC    | on-chip    | serial                              |
-+------------+------------+-------------------------------------+
+.. zephyr:board-supported-hw::
 
 Prerequisites
 -------------
@@ -133,6 +99,8 @@ below to retrieve those files.
 
 Building & Flashing
 *******************
+
+.. zephyr:board-supported-runners::
 
 Simple boot
 ===========
@@ -249,6 +217,9 @@ message in the monitor:
 
    ***** Booting Zephyr OS vx.x.x-xxx-gxxxxxxxxxxxx *****
    Hello World! esp32s3_devkitm
+
+.. include:: ../../../espressif/common/board-variants.rst
+   :start-after: espressif-board-variants
 
 Debugging
 *********

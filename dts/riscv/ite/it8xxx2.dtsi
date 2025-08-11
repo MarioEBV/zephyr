@@ -153,6 +153,15 @@
 			interrupt-parent = <&intc>;
 		};
 
+		counter0: counter@f01f30 {
+			compatible = "ite,it8xxx2-counter";
+			reg = <0xf01f30 0x10>;
+			interrupts = <IT8XXX2_IRQ_TIMER7 IRQ_TYPE_EDGE_RISING   /* Alarm timer */
+				      IT8XXX2_IRQ_TIMER8 IRQ_TYPE_EDGE_RISING>; /* Top timer */
+			interrupt-parent = <&intc>;
+			status = "disabled";
+		};
+
 		gpioa: gpio@f01601 {
 			compatible = "ite,it8xxx2-gpio";
 			reg = <0x00f01601 1   /* GPDR (set) */
@@ -432,7 +441,10 @@
 				      IT8XXX2_IRQ_PMC1_IBF IRQ_TYPE_LEVEL_HIGH
 				      IT8XXX2_IRQ_PCH_P80 IRQ_TYPE_LEVEL_HIGH
 				      IT8XXX2_IRQ_PMC2_IBF IRQ_TYPE_LEVEL_HIGH
-				      IT8XXX2_IRQ_WKINTD IRQ_TYPE_LEVEL_HIGH>;
+				      IT8XXX2_IRQ_WKINTD IRQ_TYPE_LEVEL_HIGH
+				      IT8XXX2_IRQ_PMC3_IBF IRQ_TYPE_LEVEL_HIGH
+				      IT8XXX2_IRQ_PMC4_IBF IRQ_TYPE_LEVEL_HIGH
+				      IT8XXX2_IRQ_PMC5_IBF IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-parent = <&intc>;
 			wucctrl = <&wuc_wu42>;
 			#address-cells = <1>;

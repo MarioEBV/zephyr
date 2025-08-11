@@ -27,7 +27,6 @@ from twisterlib.error import TwisterRuntimeError
 from twisterlib.log_helper import log_command
 
 logger = logging.getLogger('twister')
-logger.setLevel(logging.DEBUG)
 
 ZEPHYR_BASE = os.getenv("ZEPHYR_BASE")
 if not ZEPHYR_BASE:
@@ -134,7 +133,7 @@ Artificially long but functional example:
         "--load-tests",
         metavar="FILENAME",
         action="store",
-        help="Load a list of tests and platforms to be run"
+        help="Load a list of tests and platforms to be run "
              "from a JSON file ('testplan.json' schema)."
     )
 
@@ -223,6 +222,7 @@ Artificially long but functional example:
                         help="""Flash device before attaching to serial port.
                         This is useful for devices that share the same port for programming
                         and serial console, or use soft-USB, where flash must come first.
+                        Also, it skips reading remaining logs from the old image run.
                         """)
 
     test_or_build.add_argument(
@@ -235,7 +235,7 @@ Artificially long but functional example:
 
     test_or_build.add_argument(
         "--prep-artifacts-for-testing", action="store_true",
-        help="Generate artifacts for testing, do not attempt to run the"
+        help="Generate artifacts for testing, do not attempt to run the "
               "code on targets.")
 
     parser.add_argument(
@@ -252,6 +252,12 @@ Artificially long but functional example:
         help="""Globally adjust tests timeouts by specified multiplier. The resulting test
         timeout would be multiplication of test timeout value, board-level timeout multiplier
         and global timeout multiplier (this parameter)""")
+
+    parser.add_argument(
+        "--test-pattern", action="append",
+        help="""Run only the tests matching the specified pattern. The pattern
+        can include regular expressions.
+        """)
 
     test_xor_subtest.add_argument(
         "-s", "--test", "--scenario", action="append", type = norm_path,
@@ -411,7 +417,7 @@ structure in the main Zephyr tree: boards/<vendor>/<board_name>/""")
     )
 
     parser.add_argument("--level", action="store",
-        help="Test level to be used. By default, no levels are used for filtering"
+        help="Test level to be used. By default, no levels are used for filtering "
              "and do the selection based on existing filters.")
 
     parser.add_argument(
@@ -482,12 +488,6 @@ structure in the main Zephyr tree: boards/<vendor>/<board_name>/""")
         "--enable-size-report",
         action="store_true",
         help="Collect and report ROM/RAM section sizes for each test image built.")
-
-    parser.add_argument(
-        "--disable-unrecognized-section-test",
-        action="store_true",
-        default=False,
-        help="Don't error on unrecognized sections in the binary images.")
 
     footprint_group.add_argument(
         "--footprint-from-buildlog",
@@ -624,12 +624,12 @@ structure in the main Zephyr tree: boards/<vendor>/<board_name>/""")
              "and 'sleep.usleep' test Case (where 'sleep' is its Ztest suite name "
              "and 'usleep' is Ztest test name.")
 
-    # Include paths in names by default.
-    parser.set_defaults(detailed_test_id=True)
+    # Do not include paths in names by default.
+    parser.set_defaults(detailed_test_id=False)
 
     parser.add_argument(
         "--detailed-skipped-report", action="store_true",
-        help="Generate a detailed report with all skipped test cases"
+        help="Generate a detailed report with all skipped test cases "
              "including those that are filtered based on testsuite definition."
         )
 
@@ -678,6 +678,14 @@ structure in the main Zephyr tree: boards/<vendor>/<board_name>/""")
              "specified. If this option is not used, then platforms marked "
              "as default in the platform metadata file will be chosen "
              "to build and test. ")
+    parser.add_argument(
+        "--platform-pattern", action="append", default=[],
+        help="""Platform regular expression filter for testing. This option may be used multiple
+        times. Test suites will only be built/run on the platforms
+        matching the specified patterns. If this option is not used, then platforms marked
+        as default in the platform metadata file will be chosen
+        to build and test.
+        """)
 
     parser.add_argument(
         "--platform-reports", action="store_true",
@@ -701,7 +709,7 @@ structure in the main Zephyr tree: boards/<vendor>/<board_name>/""")
     parser.add_argument(
         "--quarantine-verify",
         action="store_true",
-        help="Use the list of test scenarios under quarantine and run them"
+        help="Use the list of test scenarios under quarantine and run them "
              "to verify their current status.")
 
     parser.add_argument(
@@ -976,10 +984,6 @@ def parse_arguments(
 
     if options.flash_before and options.device_flash_with_test:
         logger.error("--device-flash-with-test does not apply when --flash-before is used")
-        sys.exit(1)
-
-    if options.flash_before and options.device_serial_pty:
-        logger.error("--device-serial-pty cannot be used when --flash-before is set (for now)")
         sys.exit(1)
 
     if options.shuffle_tests and options.subset is None:

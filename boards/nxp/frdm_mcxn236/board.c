@@ -13,9 +13,13 @@
 #include "usb.h"
 
 /* USB PHY configuration */
-#define BOARD_USB_PHY_D_CAL     0x04U
-#define BOARD_USB_PHY_TXCAL45DP 0x07U
-#define BOARD_USB_PHY_TXCAL45DM 0x07U
+#define BOARD_USB_PHY_D_CAL     (0x04U)
+#define BOARD_USB_PHY_TXCAL45DP (0x07U)
+#define BOARD_USB_PHY_TXCAL45DM (0x07U)
+
+usb_phy_config_struct_t usbPhyConfig = {
+	BOARD_USB_PHY_D_CAL, BOARD_USB_PHY_TXCAL45DP, BOARD_USB_PHY_TXCAL45DM,
+};
 #endif
 
 /* Board xtal frequency in Hz */
@@ -57,7 +61,7 @@ void power_mode_od(void)
 	SPC_SetSRAMOperateVoltage(SPC0, &cfg);
 }
 
-static int frdm_mcxn236_init(void)
+void board_early_init_hook(void)
 {
 	enable_lpcac();
 
@@ -118,24 +122,34 @@ static int frdm_mcxn236_init(void)
 	CLOCK_SetClkDiv(kCLOCK_DivPLL1Clk0, 1U);
 #endif
 
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm0))
+	/* Configure input clock to be able to reach the datasheet specified SPI band rate. */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom0Clk, 1u);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM0);
+#endif
+
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm1))
+	/* Configure input clock to be able to reach the datasheet specified SPI band rate. */
 	CLOCK_SetClkDiv(kCLOCK_DivFlexcom1Clk, 1u);
-	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM1);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM1);
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm2))
+	/* Configure input clock to be able to reach the datasheet specified SPI band rate. */
 	CLOCK_SetClkDiv(kCLOCK_DivFlexcom2Clk, 1u);
-	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM2);
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm3))
+	/* Configure input clock to be able to reach the datasheet specified SPI band rate. */
 	CLOCK_SetClkDiv(kCLOCK_DivFlexcom3Clk, 1u);
-	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM3);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM3);
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm4))
+	/* Configure input clock to be able to reach the datasheet specified SPI band rate. */
 	CLOCK_SetClkDiv(kCLOCK_DivFlexcom4Clk, 1u);
-	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM4);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM4);
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(flexcomm5))
@@ -215,11 +229,7 @@ static int frdm_mcxn236_init(void)
 	CLOCK_AttachClk(kFRO_HF_to_ADC0);
 #endif
 
-#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(usb1)) && CONFIG_USB_DC_NXP_EHCI
-	usb_phy_config_struct_t usbPhyConfig = {
-		BOARD_USB_PHY_D_CAL, BOARD_USB_PHY_TXCAL45DP, BOARD_USB_PHY_TXCAL45DM,
-	};
-
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(usb1)) && (CONFIG_USB_DC_NXP_EHCI || CONFIG_UDC_NXP_EHCI)
 	SPC0->ACTIVE_VDELAY = 0x0500;
 	/* Change the power DCDC to 1.8v (By default, DCDC is 1.8V), CORELDO to 1.1v (By default,
 	 * CORELDO is 1.0V)
@@ -255,7 +265,9 @@ static int frdm_mcxn236_init(void)
 	CLOCK_EnableClock(kCLOCK_UsbHsPhy);
 	CLOCK_EnableUsbhsPhyPllClock(kCLOCK_Usbphy480M, BOARD_XTAL0_CLK_HZ);
 	CLOCK_EnableUsbhsClock();
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(usb1)) && CONFIG_USB_DC_NXP_EHCI
 	USB_EhciPhyInit(kUSB_ControllerEhci0, BOARD_XTAL0_CLK_HZ, &usbPhyConfig);
+#endif
 #endif
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(lpcmp0))
@@ -299,10 +311,19 @@ static int frdm_mcxn236_init(void)
 	CLOCK_AttachClk(kPLL0_to_I3C1FCLK);
 #endif
 
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(smartdma))
+	CLOCK_EnableClock(kCLOCK_Smartdma);
+	RESET_PeripheralReset(kSMART_DMA_RST_SHIFT_RSTn);
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(video_sdma))
+	/* Drive CLKOUT from main clock, divided by 25 to yield 6MHz clock
+	 * The camera will use this clock signal to generate
+	 * PCLK, HSYNC, and VSYNC
+	 */
+	CLOCK_AttachClk(kMAIN_CLK_to_CLKOUT);
+	CLOCK_SetClkDiv(kCLOCK_DivClkOut, 25U);
+#endif
+#endif
+
 	/* Set SystemCoreClock variable. */
 	SystemCoreClock = CLOCK_INIT_CORE_CLOCK;
-
-	return 0;
 }
-
-SYS_INIT(frdm_mcxn236_init, PRE_KERNEL_1, CONFIG_BOARD_INIT_PRIORITY);

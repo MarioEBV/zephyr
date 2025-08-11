@@ -13,6 +13,7 @@
 #include <zephyr/net/socket_poll.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_pkt.h>
+#include <zephyr/debug/cpu_load.h>
 
 static void _get_thread_name(struct k_thread *thread,
 			     ctf_bounded_string_t *name)
@@ -74,6 +75,21 @@ void sys_trace_k_thread_priority_set(struct k_thread *thread)
 	_get_thread_name(thread, &name);
 	ctf_top_thread_priority_set((uint32_t)(uintptr_t)thread,
 				    thread->base.prio, name);
+}
+
+void sys_trace_k_thread_sleep_enter(k_timeout_t timeout)
+{
+	ctf_top_thread_sleep_enter(
+		k_ticks_to_us_floor32((uint32_t)timeout.ticks)
+		);
+}
+
+void sys_trace_k_thread_sleep_exit(k_timeout_t timeout, int ret)
+{
+	ctf_top_thread_sleep_exit(
+		k_ticks_to_us_floor32((uint32_t)timeout.ticks),
+		(uint32_t)ret
+		);
 }
 
 void sys_trace_k_thread_create(struct k_thread *thread, size_t stack_size, int prio)
@@ -188,7 +204,19 @@ void sys_trace_isr_exit_to_scheduler(void)
 
 void sys_trace_idle(void)
 {
+#ifdef CONFIG_TRACING_IDLE
 	ctf_top_idle();
+#endif
+	if (IS_ENABLED(CONFIG_CPU_LOAD)) {
+		cpu_load_on_enter_idle();
+	}
+}
+
+void sys_trace_idle_exit(void)
+{
+	if (IS_ENABLED(CONFIG_CPU_LOAD)) {
+		cpu_load_on_exit_idle();
+	}
 }
 
 /* Semaphore */

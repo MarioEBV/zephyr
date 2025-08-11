@@ -196,6 +196,8 @@ enum espi_virtual_peripheral {
 	ESPI_PERIPHERAL_HOST_IO,
 	ESPI_PERIPHERAL_DEBUG_PORT80,
 	ESPI_PERIPHERAL_HOST_IO_PVT,
+	ESPI_PERIPHERAL_HOST_IO_PVT2,
+	ESPI_PERIPHERAL_HOST_IO_PVT3,
 #if defined(CONFIG_ESPI_PERIPHERAL_EC_HOST_CMD)
 	ESPI_PERIPHERAL_EC_HOST_CMD,
 #endif /* CONFIG_ESPI_PERIPHERAL_EC_HOST_CMD */
@@ -728,6 +730,8 @@ static inline int z_impl_espi_write_lpc_request(const struct device *dev,
  *
  * @retval 0 If successful.
  * @retval -EIO General input / output error, failed to send over the bus.
+ * @retval -EINVAL invalid signal.
+ * @retval -ETIMEDOUT timeout waiting for eSPI controller to process the VW.
  */
 __syscall int espi_send_vwire(const struct device *dev,
 			      enum espi_vwire_signal signal,

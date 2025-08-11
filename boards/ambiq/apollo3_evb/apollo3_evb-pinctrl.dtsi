@@ -125,7 +125,7 @@
 			pinmux = <NCE19_P19>;
 			drive-push-pull;
 			drive-strength = "0.5";
-			ambiq,iom-nce-module = <0>;
+			ambiq,nce-src = <0>;
 			ambiq,iom-num = <6>;
 		};
 	};
@@ -138,6 +138,12 @@
 				 <BLEIF_CSN_P33>,
 				 <BLEIF_STATUS_P35>,
 				 <BLEIF_IRQ_P41>;
+		};
+	};
+
+	pwm2_default: pwm2_default{
+		group1 {
+			pinmux = <GPIO_P30>;
 		};
 	};
 };

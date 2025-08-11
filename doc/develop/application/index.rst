@@ -599,10 +599,11 @@ storage used to cache values between runs, including compile and build
 options and paths to library dependencies. This cache file is created
 when CMake is run in an empty build folder.
 
-For more details about the CMakeCache.txt file see the official CMake
-documentation `runningcmake`_ .
+For more details about the CMakeCache.txt file see the official `CMake Cache`_
+documentation.
 
-.. _runningcmake: http://cmake.org/runningcmake/
+.. _CMake Cache: https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html
+
 
 Application Configuration
 *************************
@@ -1196,6 +1197,11 @@ boilerplate with ``find_package(Zephyr ...)``.
    be provided, for example ``list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/<extra-board-root>)``.
    When using ``-DBOARD_ROOT=<board-root>`` both absolute and relative paths can
    be used. Relative paths are treated relatively to the application directory.
+
+.. note::
+
+   When using sysbuild, then ``BOARD_ROOT`` must defined in a module or in the sysbuild
+   ``CMakeLists.txt`` file, see :ref:`sysbuild_var_override` for details.
 
 SOC Definitions
 ===============

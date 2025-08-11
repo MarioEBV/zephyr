@@ -130,11 +130,13 @@ static inline void dai_dmic_write(const struct dai_intel_dmic *dmic,
 	sys_write32(val, dmic->reg_base + reg);
 }
 
+#ifndef CONFIG_SOC_SERIES_INTEL_ADSP_ACE
 static inline uint32_t dai_dmic_read(const struct dai_intel_dmic *dmic,
 				     uint32_t reg)
 {
 	return sys_read32(dmic->reg_base + reg);
 }
+#endif
 
 #if CONFIG_DAI_DMIC_HAS_OWNERSHIP
 static inline void dai_dmic_claim_ownership(const struct dai_intel_dmic *dmic)
@@ -160,7 +162,8 @@ static inline void dai_dmic_release_ownership(const struct dai_intel_dmic *dmic)
 
 static inline uint32_t dai_dmic_base(const struct dai_intel_dmic *dmic)
 {
-#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	return dmic->hdamldmic_base;
 #else
 	return dmic->shim_base;
@@ -173,7 +176,8 @@ static inline void dai_dmic_set_sync_period(uint32_t period, const struct dai_in
 	uint32_t val = CONFIG_DAI_DMIC_HW_IOCLK / period - 1;
 	uint32_t base = dai_dmic_base(dmic);
 	/* DMIC Change sync period */
-#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | FIELD_PREP(DMICSYNC_SYNCPRD, val),
 		    base + DMICSYNC_OFFSET);
 	sys_write32(sys_read32(base + DMICSYNC_OFFSET) | DMICSYNC_SYNCPU,
@@ -257,37 +261,11 @@ static void dai_dmic_stop_fifo_packers(struct dai_intel_dmic *dmic,
 			     OUTCONTROL_FINIT);
 }
 
-/* On DMIC IRQ event trace the status register that contains the status and
- * error bit fields.
- */
-static void dai_dmic_irq_handler(const void *data)
-{
-	struct dai_intel_dmic *dmic = ((struct device *)data)->data;
-	uint32_t val0;
-	uint32_t val1;
-
-	/* Trace OUTSTAT0 register */
-	val0 = dai_dmic_read(dmic, OUTSTAT);
-	val1 = dai_dmic_read(dmic, OUTSTAT + PDM_CHANNEL_REGS_SIZE);
-	LOG_DBG("dmic_irq_handler(), OUTSTAT0 = 0x%x, OUTSTAT1 = 0x%x", val0, val1);
-
-	if (val0 & OUTSTAT_ROR) {
-		LOG_ERR("dmic_irq_handler(): full fifo A or PDM overrun");
-		dai_dmic_write(dmic, OUTSTAT, val0);
-		dai_dmic_stop_fifo_packers(dmic, 0);
-	}
-
-	if (val1 & OUTSTAT_ROR) {
-		LOG_ERR("dmic_irq_handler(): full fifo B or PDM overrun");
-		dai_dmic_write(dmic, OUTSTAT + PDM_CHANNEL_REGS_SIZE, val1);
-		dai_dmic_stop_fifo_packers(dmic, 1);
-	}
-}
-
 static inline void dai_dmic_dis_clk_gating(const struct dai_intel_dmic *dmic)
 {
 	/* Disable DMIC clock gating */
-#if (CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	sys_write32((sys_read32(dmic->vshim_base + DMICLVSCTL_OFFSET) | DMICLVSCTL_DCGD),
 		    dmic->vshim_base + DMICLVSCTL_OFFSET);
 #else
@@ -299,7 +277,8 @@ static inline void dai_dmic_dis_clk_gating(const struct dai_intel_dmic *dmic)
 static inline void dai_dmic_en_clk_gating(const struct dai_intel_dmic *dmic)
 {
 	/* Enable DMIC clock gating */
-#if (CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	sys_write32((sys_read32(dmic->vshim_base + DMICLVSCTL_OFFSET) & ~DMICLVSCTL_DCGD),
 		    dmic->vshim_base + DMICLVSCTL_OFFSET);
 #else /* All other CAVS and ACE platforms */
@@ -313,7 +292,8 @@ static inline void dai_dmic_program_channel_map(const struct dai_intel_dmic *dmi
 						const struct dai_config *cfg,
 						uint32_t index)
 {
-#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	uint16_t pcmsycm = cfg->link_config;
 	uint32_t reg_add = dmic->shim_base + DMICXPCMSyCM_OFFSET + 0x0004*index;
 
@@ -322,7 +302,7 @@ static inline void dai_dmic_program_channel_map(const struct dai_intel_dmic *dmi
 	ARG_UNUSED(dmic);
 	ARG_UNUSED(cfg);
 	ARG_UNUSED(index);
-#endif /* defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) */
+#endif /* CONFIG_SOC_INTEL_ACE20_LNL || CONFIG_SOC_INTEL_ACE30 || CONFIG_SOC_INTEL_ACE40 */
 }
 
 static inline void dai_dmic_en_power(const struct dai_intel_dmic *dmic)
@@ -332,7 +312,8 @@ static inline void dai_dmic_en_power(const struct dai_intel_dmic *dmic)
 	sys_write32((sys_read32(base + DMICLCTL_OFFSET) | DMICLCTL_SPA),
 			base + DMICLCTL_OFFSET);
 
-#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30)
+#if defined(CONFIG_SOC_INTEL_ACE20_LNL) || defined(CONFIG_SOC_INTEL_ACE30) ||                      \
+	defined(CONFIG_SOC_INTEL_ACE40)
 	while (!(sys_read32(base + DMICLCTL_OFFSET) & DMICLCTL_CPA)) {
 		k_sleep(K_USEC(100));
 	}
@@ -366,8 +347,6 @@ static int dai_dmic_probe(struct dai_intel_dmic *dmic)
 	/* DMIC Owner Select to DSP */
 	dai_dmic_claim_ownership(dmic);
 
-	irq_enable(dmic->irq);
-
 	return 0;
 }
 
@@ -375,10 +354,6 @@ static int dai_dmic_remove(struct dai_intel_dmic *dmic)
 {
 	uint32_t active_fifos_mask = dai_dmic_global.active_fifos_mask;
 	uint32_t pause_mask = dai_dmic_global.pause_mask;
-
-	LOG_INF("dmic_remove()");
-
-	irq_disable(dmic->irq);
 
 	LOG_INF("dmic_remove(), dmic_active_fifos_mask = 0x%x, dmic_pause_mask = 0x%x",
 		active_fifos_mask, pause_mask);
@@ -585,7 +560,6 @@ static void dai_dmic_start(struct dai_intel_dmic *dmic)
 	for (i = 0; i < CONFIG_DAI_DMIC_HW_CONTROLLERS; i++) {
 		mic_a = dmic->enable[i] & 1;
 		mic_b = (dmic->enable[i] & 2) >> 1;
-		start_fir = dmic->enable[i] > 0;
 
 		/* If both microphones are needed start them simultaneously
 		 * to start them in sync. The reset may be cleared for another
@@ -618,7 +592,10 @@ static void dai_dmic_start(struct dai_intel_dmic *dmic)
 					     MIC_CONTROL_PDM_EN_B,
 					     FIELD_PREP(MIC_CONTROL_PDM_EN_B, 1));
 		}
+	}
 
+	for (i = 0; i < CONFIG_DAI_DMIC_HW_CONTROLLERS; i++) {
+		start_fir = dmic->enable[i] > 0;
 		dai_dmic_update_bits(dmic, dmic_base[i] + FIR_CHANNEL_REGS_SIZE *
 				     dmic->dai_config_params.dai_index + FIR_CONTROL,
 				     FIR_CONTROL_START,
@@ -889,13 +866,6 @@ DEVICE_API(dai, dai_dmic_ops) = {
 
 static int dai_dmic_initialize_device(const struct device *dev)
 {
-	IRQ_CONNECT(
-		DT_INST_IRQN(0),
-		IRQ_DEFAULT_PRIORITY,
-		dai_dmic_irq_handler,
-		DEVICE_DT_INST_GET(0),
-		0);
-
 	return pm_device_driver_init(dev, dmic_pm_action);
 };
 

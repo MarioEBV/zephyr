@@ -26,8 +26,8 @@
 
 .. _zephyr_4.1:
 
-Zephyr 4.1.0 (Working Draft)
-############################
+Zephyr 4.1.0
+############
 
 We are pleased to announce the release of Zephyr version 4.1.0.
 Major enhancements with this release include:
@@ -70,10 +70,8 @@ The following sections provide detailed lists of changes by component.
 
 Security Vulnerability Related
 ******************************
-The following CVEs are addressed by this release:
 
-More detailed information can be found in:
-https://docs.zephyrproject.org/latest/security/vulnerabilities.html
+The following CVEs are addressed by this release:
 
 * :cve:`2025-1673` `Zephyr project bug tracker GHSA-jjhx-rrh4-j8mx
   <https://github.com/zephyrproject-rtos/zephyr/security/advisories/GHSA-jjhx-rrh4-j8mx>`_
@@ -83,6 +81,9 @@ https://docs.zephyrproject.org/latest/security/vulnerabilities.html
 
 * :cve:`2025-1675` `Zephyr project bug tracker GHSA-2m84-5hfw-m8v4
   <https://github.com/zephyrproject-rtos/zephyr/security/advisories/GHSA-2m84-5hfw-m8v4>`_
+
+More detailed information can be found in:
+https://docs.zephyrproject.org/latest/security/vulnerabilities.html
 
 API Changes
 ***********
@@ -128,6 +129,11 @@ Removed APIs and options
 
 * Struct ``z_arch_esf_t`` has been removed. Use ``struct arch_esf`` instead.
 
+* The following networking options have been removed:
+
+    * ``CONFIG_NET_PKT_BUF_DATA_POOL_SIZE``
+    * ``CONFIG_NET_TCP_ACK_TIMEOUT``
+
 
 Deprecated APIs and options
 ===========================
@@ -146,6 +152,26 @@ Deprecated APIs and options
 
   1. when Stream Flash is not configured to do erase on its own
   2. when erase is used for removal of a data prior or after Stream Flash uses the designated area.
+
+* The pipe API has been reworked.
+  The new API is enabled by default when ``CONFIG_MULTITHREADING`` is set.
+
+  * Deprecates the ``CONFIG_PIPES`` Kconfig option.
+  * Introduces the ``k_pipe_close(..)`` function.
+  * ``k_pipe_put(..)`` translates to ``k_pipe_write(..)``.
+  * ``k_pipe_get(..)`` translates to ``k_pipe_read(..)``.
+  * ``k_pipe_flush(..)`` & ``k_pipe_buffer_flush()`` can be translated to ``k_pipe_reset(..)``.
+
+  * Dynamic allocation of pipes is no longer supported.
+
+    - ``k_pipe_alloc_init(..)`` API has been removed.
+    - ``k_pipe_cleanup(..)`` API has been removed.
+
+  * Querying the number of bytes in the pipe is no longer supported.
+
+    - ``k_pipe_read_avail(..)`` API has been removed.
+    - ``k_pipe_write_avail(..)`` API has been removed.
+
 
 * For the native_sim target :kconfig:option:`CONFIG_NATIVE_SIM_NATIVE_POSIX_COMPAT` has been
   switched to ``n`` by default, and this option has been deprecated.
@@ -246,6 +272,76 @@ New APIs and options
   * Signed hex files where an encryption key Kconfig is set now have the encrypted flag set in
     the image header.
 
+* Networking:
+
+  * CoAP
+
+    * :c:func:`coap_client_cancel_request`
+
+  * DHCP
+
+    * :kconfig:option:`CONFIG_NET_DHCPV4_SERVER_OPTION_ROUTER`
+    * :kconfig:option:`CONFIG_NET_DHCPV4_OPTION_DNS_ADDRESS`
+    * :kconfig:option:`CONFIG_NET_DHCPV6_OPTION_DNS_ADDRESS`
+
+  * DNS
+
+    * :kconfig:option:`CONFIG_MDNS_RESPONDER_PROBE`
+
+  * Ethernet
+
+    * Allow user to specify protocol extensions when receiving data from Ethernet network.
+      This makes it possible to register a handler for Ethernet protocol type without changing
+      core Zephyr network code. :c:macro:`NET_L3_REGISTER`
+    * :kconfig:option:`CONFIG_NET_L2_ETHERNET_RESERVE_HEADER`
+
+  * HTTP
+
+    * Extended :c:macro:`HTTP_SERVICE_DEFINE` to allow to specify a default
+      fallback resource handler.
+    * :kconfig:option:`CONFIG_HTTP_SERVER_REPORT_FAILURE_REASON`
+    * :kconfig:option:`CONFIG_HTTP_SERVER_TLS_USE_ALPN`
+
+  * IPv4
+
+    * :kconfig:option:`CONFIG_NET_IPV4_PMTU`
+
+  * IPv6
+
+    * :kconfig:option:`CONFIG_NET_IPV6_PMTU`
+
+  * LwM2M
+
+    * :c:func:`lwm2m_pull_context_set_sockopt_callback`
+
+  * MQTT-SN
+
+    * Added Gateway Advertisement and Discovery support:
+
+      * :c:func:`mqtt_sn_add_gw`
+      * :c:func:`mqtt_sn_search`
+
+  * OpenThread
+
+    * :kconfig:option:`CONFIG_OPENTHREAD_WAKEUP_COORDINATOR`
+    * :kconfig:option:`CONFIG_OPENTHREAD_WAKEUP_END_DEVICE`
+    * :kconfig:option:`CONFIG_OPENTHREAD_PLATFORM_MESSAGE_MANAGEMENT`
+    * :kconfig:option:`CONFIG_OPENTHREAD_TCAT_MULTIRADIO_CAPABILITIES`
+
+  * Sockets
+
+    * Added support for new socket options:
+
+      * :c:macro:`IP_LOCAL_PORT_RANGE`
+      * :c:macro:`IP_MULTICAST_IF`
+      * :c:macro:`IPV6_MULTICAST_IF`
+      * :c:macro:`IP_MTU`
+      * :c:macro:`IPV6_MTU`
+
+  * Other
+
+    * :kconfig:option:`CONFIG_NET_STATISTICS_VIA_PROMETHEUS`
+
 * Video
 
   * :c:func:`video_set_stream()` driver API has replaced :c:func:`video_stream_start()` and
@@ -341,7 +437,7 @@ New Boards
 
 * Nordic Semiconductor
 
-   * :zephyr:board:`nrf54l09pdk` (``nrf54l09pdk``)
+   * nRF54L09 PDK (``nrf54l09pdk``)
 
 * Norik Systems
 
@@ -846,7 +942,7 @@ New Samples
 * :zephyr:code-sample:`bluetooth_ccp_call_control_client`
 * :zephyr:code-sample:`bluetooth_ccp_call_control_server`
 * :zephyr:code-sample:`coresight_stm_sample`
-* :zephyr:code-sample:`dfu-next`
+* :zephyr:code-sample:`usb-dfu`
 * :zephyr:code-sample:`i2c-rtio-loopback`
 * :zephyr:code-sample:`lvgl-screen-transparency`
 * :zephyr:code-sample:`mctp_endpoint_sample`
@@ -861,8 +957,8 @@ New Samples
 * :zephyr:code-sample:`tmc50xx`
 * :zephyr:code-sample:`uart`
 * :zephyr:code-sample:`usb-midi2-device`
-* :zephyr:code-sample:`usbd-cdc-acm-console`
-* :zephyr:code-sample:`webusb-next`
+* :zephyr:code-sample:`usb-cdc-acm-console`
+* :zephyr:code-sample:`webusb`
 
 Other notable changes
 *********************
@@ -888,3 +984,16 @@ Other notable changes
 
 * The ``--no-detailed-test-id`` command line option can be used to shorten the test case name
   by excluding the test scenario name prefix which is the same as the parent test suite id.
+
+* Added support for HTTP PUT/PATCH/DELETE methods for HTTP server dynamic resources.
+
+* Driver API structures are now available through iterable sections and a new
+  :c:macro:`DEVICE_API_IS` macro has been introduced to allow to check if a device supports a
+  given API. Many shell commands now use this to provide "smarter" auto-completion and only list
+  compatible devices when they expect a device argument.
+
+* Zephyr's :ref:`interactive board catalog <boards>` has been extended to allow searching for boards
+  based on supported hardware features. A new :rst:dir:`zephyr:board-supported-hw` Sphinx directive
+  can now be used in boards' documentation pages to automatically include a list of the hardware
+  features supported by a board, and many boards have already adopted this new feature in their
+  documentation.

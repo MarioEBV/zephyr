@@ -17,9 +17,12 @@
 #include <zephyr/drivers/pm_cpu_ops.h>
 #include <zephyr/arch/common/exc_handle.h>
 #include <zephyr/kernel.h>
+#include <zephyr/linker/linker-defs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/poweroff.h>
 #include <kernel_arch_func.h>
+#include <kernel_arch_interface.h>
+#include <zephyr/arch/exception.h>
 
 #include "paging.h"
 
@@ -177,29 +180,60 @@ static void dump_esr(uint64_t esr, bool *dump_far)
 		err = "Unknown";
 	}
 
-	LOG_ERR("ESR_ELn: 0x%016llx", esr);
-	LOG_ERR("  EC:  0x%llx (%s)", GET_ESR_EC(esr), err);
-	LOG_ERR("  IL:  0x%llx", GET_ESR_IL(esr));
-	LOG_ERR("  ISS: 0x%llx", GET_ESR_ISS(esr));
+	EXCEPTION_DUMP("ESR_ELn: 0x%016llx", esr);
+	EXCEPTION_DUMP("  EC:  0x%llx (%s)", GET_ESR_EC(esr), err);
+	EXCEPTION_DUMP("  IL:  0x%llx", GET_ESR_IL(esr));
+	EXCEPTION_DUMP("  ISS: 0x%llx", GET_ESR_ISS(esr));
 }
 
 static void esf_dump(const struct arch_esf *esf)
 {
-	LOG_ERR("x0:  0x%016llx  x1:  0x%016llx", esf->x0, esf->x1);
-	LOG_ERR("x2:  0x%016llx  x3:  0x%016llx", esf->x2, esf->x3);
-	LOG_ERR("x4:  0x%016llx  x5:  0x%016llx", esf->x4, esf->x5);
-	LOG_ERR("x6:  0x%016llx  x7:  0x%016llx", esf->x6, esf->x7);
-	LOG_ERR("x8:  0x%016llx  x9:  0x%016llx", esf->x8, esf->x9);
-	LOG_ERR("x10: 0x%016llx  x11: 0x%016llx", esf->x10, esf->x11);
-	LOG_ERR("x12: 0x%016llx  x13: 0x%016llx", esf->x12, esf->x13);
-	LOG_ERR("x14: 0x%016llx  x15: 0x%016llx", esf->x14, esf->x15);
-	LOG_ERR("x16: 0x%016llx  x17: 0x%016llx", esf->x16, esf->x17);
-	LOG_ERR("x18: 0x%016llx  lr:  0x%016llx", esf->x18, esf->lr);
+	EXCEPTION_DUMP("x0:  0x%016llx  x1:  0x%016llx", esf->x0, esf->x1);
+	EXCEPTION_DUMP("x2:  0x%016llx  x3:  0x%016llx", esf->x2, esf->x3);
+	EXCEPTION_DUMP("x4:  0x%016llx  x5:  0x%016llx", esf->x4, esf->x5);
+	EXCEPTION_DUMP("x6:  0x%016llx  x7:  0x%016llx", esf->x6, esf->x7);
+	EXCEPTION_DUMP("x8:  0x%016llx  x9:  0x%016llx", esf->x8, esf->x9);
+	EXCEPTION_DUMP("x10: 0x%016llx  x11: 0x%016llx", esf->x10, esf->x11);
+	EXCEPTION_DUMP("x12: 0x%016llx  x13: 0x%016llx", esf->x12, esf->x13);
+	EXCEPTION_DUMP("x14: 0x%016llx  x15: 0x%016llx", esf->x14, esf->x15);
+	EXCEPTION_DUMP("x16: 0x%016llx  x17: 0x%016llx", esf->x16, esf->x17);
+	EXCEPTION_DUMP("x18: 0x%016llx  lr:  0x%016llx", esf->x18, esf->lr);
 }
 #endif /* CONFIG_EXCEPTION_DEBUG */
 
 #ifdef CONFIG_ARCH_STACKWALK
 typedef bool (*arm64_stacktrace_cb)(void *cookie, unsigned long addr, void *fp);
+
+static bool is_address_mapped(uint64_t *addr)
+{
+	uintptr_t *phys = NULL;
+
+	if (*addr == 0U) {
+		return false;
+	}
+
+	/* Check alignment. */
+	if ((*addr & (sizeof(uint32_t) - 1U)) != 0U) {
+		return false;
+	}
+
+	return !arch_page_phys_get((void *) addr, phys);
+}
+
+static bool is_valid_jump_address(uint64_t *addr)
+{
+	if (*addr == 0U) {
+		return false;
+	}
+
+	/* Check alignment. */
+	if ((*addr & (sizeof(uint32_t) - 1U)) != 0U) {
+		return false;
+	}
+
+	return ((*addr >= (uint64_t)__text_region_start) &&
+		(*addr <= (uint64_t)(__text_region_end)));
+}
 
 static void walk_stackframe(arm64_stacktrace_cb cb, void *cookie, const struct arch_esf *esf,
 			    int max_frames)
@@ -234,7 +268,12 @@ static void walk_stackframe(arm64_stacktrace_cb cb, void *cookie, const struct a
 	}
 
 	for (int i = 0; (fp != NULL) && (i < max_frames); i++) {
+		if (!is_address_mapped(fp))
+			break;
 		lr = fp[1];
+		if (!is_valid_jump_address(&lr)) {
+			break;
+		}
 		if (!cb(cookie, lr, fp)) {
 			break;
 		}
@@ -260,10 +299,11 @@ static bool print_trace_address(void *arg, unsigned long lr, void *fp)
 	uint32_t offset = 0;
 	const char *name = symtab_find_symbol_name(lr, &offset);
 
-	LOG_ERR("     %d: fp: 0x%016llx lr: 0x%016lx [%s+0x%x]", (*i)++, (uint64_t)fp, lr, name,
-		offset);
+	EXCEPTION_DUMP("     %d: fp: 0x%016llx lr: 0x%016lx [%s+0x%x]",
+			(*i)++, (uint64_t)fp, lr, name, offset);
 #else
-	LOG_ERR("     %d: fp: 0x%016llx lr: 0x%016lx", (*i)++, (uint64_t)fp, lr);
+	EXCEPTION_DUMP("     %d: fp: 0x%016llx lr: 0x%016lx",
+			(*i)++, (uint64_t)fp, lr);
 #endif /* CONFIG_SYMTAB */
 
 	return true;
@@ -273,10 +313,10 @@ static void esf_unwind(const struct arch_esf *esf)
 {
 	int i = 0;
 
-	LOG_ERR("");
-	LOG_ERR("call trace:");
+	EXCEPTION_DUMP("");
+	EXCEPTION_DUMP("call trace:");
 	walk_stackframe(print_trace_address, &i, esf, CONFIG_ARCH_STACKWALK_MAX_FRAMES);
-	LOG_ERR("");
+	EXCEPTION_DUMP("");
 }
 #endif /* CONFIG_EXCEPTION_STACK_TRACE */
 
@@ -300,7 +340,8 @@ static bool z_arm64_stack_corruption_check(struct arch_esf *esf, uint64_t esr, u
 			write_cpacr_el1(read_cpacr_el1() | CPACR_EL1_FPEN_NOTRAP);
 #endif
 			arch_curr_cpu()->arch.corrupted_sp = 0UL;
-			LOG_ERR("STACK OVERFLOW FROM KERNEL, SP: 0x%llx OR FAR: 0x%llx INVALID,"
+			EXCEPTION_DUMP("STACK OVERFLOW FROM KERNEL,"
+				" SP: 0x%llx OR FAR: 0x%llx INVALID,"
 				" SP LIMIT: 0x%llx", sp, far, sp_limit);
 			return true;
 		}
@@ -311,8 +352,9 @@ static bool z_arm64_stack_corruption_check(struct arch_esf *esf, uint64_t esr, u
 		guard_start = sp_limit - Z_ARM64_STACK_GUARD_SIZE;
 		sp = esf->sp;
 		if (sp <= sp_limit || (guard_start <= far && far <= sp_limit)) {
-			LOG_ERR("STACK OVERFLOW FROM USERSPACE, SP: 0x%llx OR FAR: 0x%llx INVALID,"
-				" SP LIMIT: 0x%llx", sp, far, sp_limit);
+			EXCEPTION_DUMP("STACK OVERFLOW FROM USERSPACE,"
+					"SP: 0x%llx OR FAR: 0x%llx INVALID,"
+					" SP LIMIT: 0x%llx", sp, far, sp_limit);
 			return true;
 		}
 	}
@@ -324,6 +366,10 @@ static bool z_arm64_stack_corruption_check(struct arch_esf *esf, uint64_t esr, u
 static bool is_recoverable(struct arch_esf *esf, uint64_t esr, uint64_t far,
 			   uint64_t elr)
 {
+	ARG_UNUSED(esr);
+	ARG_UNUSED(far);
+	ARG_UNUSED(elr);
+
 	if (!esf) {
 		return false;
 	}
@@ -385,15 +431,15 @@ void z_arm64_fatal_error(unsigned int reason, struct arch_esf *esf)
 #ifdef CONFIG_EXCEPTION_DEBUG
 			bool dump_far = false;
 
-			LOG_ERR("ELR_ELn: 0x%016llx", elr);
+			EXCEPTION_DUMP("ELR_ELn: 0x%016llx", elr);
 
 			dump_esr(esr, &dump_far);
 
 			if (dump_far) {
-				LOG_ERR("FAR_ELn: 0x%016llx", far);
+				EXCEPTION_DUMP("FAR_ELn: 0x%016llx", far);
 			}
 
-			LOG_ERR("TPIDRRO: 0x%016llx", read_tpidrro_el0());
+			EXCEPTION_DUMP("TPIDRRO: 0x%016llx", read_tpidrro_el0());
 #endif /* CONFIG_EXCEPTION_DEBUG */
 
 			if (is_recoverable(esf, esr, far, elr) &&

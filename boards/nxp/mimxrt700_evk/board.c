@@ -308,9 +308,14 @@ void board_early_init_hook(void)
 	CLOCK_SetClkDiv(kCLOCK_DivFlexioClk, 1U);
 #endif
 
-#if DT_NODE_HAS_STATUS(DT_NODELABEL(gpio0), okay)
+#if CONFIG_BOARD_MIMXRT700_EVK_MIMXRT798S_CM33_CPU0
 	CLOCK_EnableClock(kCLOCK_Gpio0);
 	RESET_ClearPeripheralReset(kGPIO0_RST_SHIFT_RSTn);
+
+	GPIO0->PCNS = 0xFFFFFFFFU;
+	GPIO0->PCNP = 0xFFFFFFFFU;
+	GPIO0->ICNP = 0xFFFFFFFFU;
+	GPIO0->ICNS = 0xFFFFFFFFU;
 #endif
 
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(gpio1), okay)
@@ -406,6 +411,134 @@ void board_early_init_hook(void)
 	CLOCK_AttachClk(kLPOSC_to_OSTIMER);
 	CLOCK_SetClkDiv(kCLOCK_DivOstimerClk, 1U);
 #endif
+
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(usb0)) && CONFIG_UDC_NXP_EHCI
+	/* Power on COM VDDN domain for USB */
+	POWER_DisablePD(kPDRUNCFG_DSR_VDDN_COM);
+
+	/* Power on usb ram array as need, powered USB0RAM array*/
+	POWER_DisablePD(kPDRUNCFG_APD_USB0_SRAM);
+	POWER_DisablePD(kPDRUNCFG_PPD_USB0_SRAM);
+	/* Apply the config */
+	POWER_ApplyPD();
+	/* disable the read and write gate */
+	SYSCON4->USB0_MEM_CTRL |= (SYSCON4_USB0_MEM_CTRL_MEM_WIG_MASK |
+				   SYSCON4_USB0_MEM_CTRL_MEM_RIG_MASK |
+				   SYSCON4_USB0_MEM_CTRL_MEM_STDBY_MASK);
+	/* Enable the USBPHY0 CLOCK */
+	SYSCON4->USBPHY0_CLK_ACTIVE |= SYSCON4_USBPHY0_CLK_ACTIVE_IPG_CLK_ACTIVE_MASK;
+	CLOCK_AttachClk(k32KHZ_WAKE_to_USB);
+	CLOCK_AttachClk(kOSC_CLK_to_USB_24MHZ);
+	CLOCK_EnableClock(kCLOCK_Usb0);
+	CLOCK_EnableClock(kCLOCK_UsbphyRef);
+	RESET_PeripheralReset(kUSB0_RST_SHIFT_RSTn);
+	RESET_PeripheralReset(kUSBPHY0_RST_SHIFT_RSTn);
+	CLOCK_EnableUsbhs0PhyPllClock(kCLOCK_Usbphy480M,
+				DT_PROP_BY_PHANDLE(DT_NODELABEL(usb0), clocks, clock_frequency));
+	CLOCK_EnableUsbhs0Clock(kCLOCK_Usb480M,
+				DT_PROP_BY_PHANDLE(DT_NODELABEL(usb0), clocks, clock_frequency));
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(usdhc0), okay) && CONFIG_IMX_USDHC
+	/*Make sure USDHC ram buffer has power up*/
+	POWER_DisablePD(kPDRUNCFG_APD_SDHC0_SRAM);
+	POWER_DisablePD(kPDRUNCFG_PPD_SDHC0_SRAM);
+	POWER_DisablePD(kPDRUNCFG_PD_LPOSC);
+	POWER_ApplyPD();
+
+	/* USDHC0 */
+	/* usdhc depend on 32K clock also */
+	CLOCK_AttachClk(kLPOSC_DIV32_to_32K_WAKE);
+	CLOCK_InitAudioPfd(kCLOCK_Pfd0, 24U); /* Target 400MHZ. */
+	CLOCK_AttachClk(kAUDIO_PLL_PFD0_to_SDIO0);
+	CLOCK_SetClkDiv(kCLOCK_DivSdio0Clk, 1);
+	RESET_ClearPeripheralReset(kUSDHC0_RST_SHIFT_RSTn);
+#endif
+
+#if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(wwdt0))
+	CLOCK_AttachClk(kLPOSC_to_WWDT0);
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(sai0), okay) \
+		|| DT_NODE_HAS_STATUS(DT_NODELABEL(sai1), okay) \
+		|| DT_NODE_HAS_STATUS(DT_NODELABEL(sai2), okay)
+	/* SAI clock 368.64 / 15 = 24.576MHz */
+	CLOCK_AttachClk(kAUDIO_PLL_PFD3_to_AUDIO_VDD2);
+	CLOCK_AttachClk(kAUDIO_VDD2_to_SAI012);
+	CLOCK_SetClkDiv(kCLOCK_DivSai012Clk, 15U);
+	RESET_ClearPeripheralReset(kSAI0_RST_SHIFT_RSTn);
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(sc_timer), okay)
+	CLOCK_AttachClk(kFRO0_DIV6_to_SCT);
+#endif
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(lcdif), nxp_dcnano_lcdif, okay) && \
+	CONFIG_DISPLAY
+	/* Assert LCDIF reset. */
+	RESET_SetPeripheralReset(kLCDIF_RST_SHIFT_RSTn);
+
+	/* Disable media main and LCDIF power down. */
+	POWER_DisablePD(kPDRUNCFG_SHUT_MEDIA_MAINCLK);
+	POWER_DisablePD(kPDRUNCFG_APD_LCDIF);
+	POWER_DisablePD(kPDRUNCFG_PPD_LCDIF);
+
+	/* Apply power down configuration. */
+	POWER_ApplyPD();
+
+	CLOCK_AttachClk(kMAIN_PLL_PFD2_to_LCDIF);
+	/* Note- pixel clock follows formula
+	 * (height  VSW  VFP  VBP) * (width  HSW  HFP  HBP) * frame rate.
+	 * this means the clock divider will vary depending on
+	 * the attached display.
+	 *
+	 * The root clock used here is the main PLL (PLL PFD2).
+	 */
+	CLOCK_SetClkDiv(
+		kCLOCK_DivLcdifClk,
+		(CLOCK_GetMainPfdFreq(kCLOCK_Pfd2) /
+		  DT_PROP(DT_CHILD(DT_NODELABEL(lcdif), display_timings), clock_frequency)));
+
+	CLOCK_EnableClock(kCLOCK_Lcdif);
+
+	/* Clear LCDIF reset. */
+	RESET_ClearPeripheralReset(kLCDIF_RST_SHIFT_RSTn);
+#endif
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(lcdif), nxp_mipi_dbi_dcnano_lcdif, okay)
+	/* Assert LCDIF reset. */
+	RESET_SetPeripheralReset(kLCDIF_RST_SHIFT_RSTn);
+
+	/* Disable media main and LCDIF power down. */
+	POWER_DisablePD(kPDRUNCFG_SHUT_MEDIA_MAINCLK);
+	POWER_DisablePD(kPDRUNCFG_APD_LCDIF);
+	POWER_DisablePD(kPDRUNCFG_PPD_LCDIF);
+
+	/* Apply power down configuration. */
+	POWER_ApplyPD();
+
+	/* Calculate the divider for MEDIA MAIN clock source main pll pfd2. */
+	CLOCK_InitMainPfd(kCLOCK_Pfd2, (uint64_t)CLOCK_GetMainPllFreq() * 18UL /
+						DT_PROP(DT_NODELABEL(lcdif), clock_frequency));
+	CLOCK_SetClkDiv(kCLOCK_DivMediaMainClk, 1U);
+	CLOCK_AttachClk(kMAIN_PLL_PFD2_to_MEDIA_MAIN);
+
+	CLOCK_EnableClock(kCLOCK_Lcdif);
+
+	/* Clear LCDIF reset. */
+	RESET_ClearPeripheralReset(kLCDIF_RST_SHIFT_RSTn);
+#endif
+
+#if (DT_NODE_HAS_STATUS(DT_NODELABEL(i3c2), okay) || \
+		DT_NODE_HAS_STATUS(DT_NODELABEL(i3c3), okay))
+	CLOCK_AttachClk(kSENSE_BASE_to_I3C23);
+	CLOCK_SetClkDiv(kCLOCK_DivI3c23Clk, 4U);
+#endif
+
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(acmp), okay)
+	CLOCK_EnableClock(kCLOCK_Acmp0);
+	RESET_ClearPeripheralReset(kACMP0_RST_SHIFT_RSTn);
+#endif
 }
 
 static void GlikeyWriteEnable(GLIKEY_Type *base, uint8_t idx)
@@ -428,10 +561,12 @@ static void GlikeyClearConfig(GLIKEY_Type *base)
 static void BOARD_InitAHBSC(void)
 {
 #if defined(CONFIG_SOC_MIMXRT798S_CM33_CPU0)
+	GlikeyWriteEnable(GLIKEY0, 0U);
 	GlikeyWriteEnable(GLIKEY0, 1U);
-	AHBSC0->MISC_CTRL_DP_REG = 0x000086aa;
+	GlikeyWriteEnable(GLIKEY0, 2U);
 	/* AHBSC0 MISC_CTRL_REG, disable Privilege & Secure checking. */
 	AHBSC0->MISC_CTRL_REG = 0x000086aa;
+	AHBSC0->MISC_CTRL_DP_REG = 0x000086aa;
 
 	GlikeyWriteEnable(GLIKEY0, 7U);
 	/* Enable arbiter0 accessing SRAM */
@@ -440,6 +575,14 @@ static void BOARD_InitAHBSC(void)
 	AHBSC0->MEDIA_ARB0RAM_ACCESS_ENABLE = 0x3FFFFFFF;
 	AHBSC0->NPU_ARB0RAM_ACCESS_ENABLE = 0x3FFFFFFF;
 	AHBSC0->HIFI4_ARB0RAM_ACCESS_ENABLE = 0x3FFFFFFF;
+
+	GlikeyWriteEnable(GLIKEY0, 6U);
+	AHBSC0->MASTER_SEC_LEVEL        = 0x3;
+	AHBSC0->MASTER_SEC_ANTI_POL_REG = 0xFFC;
+
+	AHBSC0->APB_SLAVE_GROUP0_RULE0 = 0x00000000;
+	AHBSC0->AHB_PERIPHERAL0_SLAVE_RULE1 = 0x00000000;
+	AHBSC0->AIPS1_BRIDGE_GROUP0_MEM_RULE2 = 0x00000000;
 #endif
 
 	GlikeyWriteEnable(GLIKEY1, 1U);
