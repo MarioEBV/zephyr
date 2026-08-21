@@ -1,0 +1,30 @@
+#
+# Copyright 2022-2024 NXP
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+identifier: frdm_rw612_is25lp256
+name: NXP FRDM_RW612_IS25LP256
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+ram: 960
+flash: 32468
+supported:
+  - gpio
+  - dma
+  - spi
+  - i2c
+  - entropy
+  - usb_device
+  - watchdog
+  - counter
+  - pwm
+  - hwinfo
+  - adc
+  - dac
+  - netif:eth
